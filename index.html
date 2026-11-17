@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>中華そば 竹むら ポイント</title>
+<style>
+  :root{
+    --bg:#FAF6EF;
+    --card:#FFFDF9;
+    --ink:#26221F;
+    --ink-soft:#6B6259;
+    --line:#E7DCCB;
+    --red:#B3392E;
+    --red-dark:#93302A;
+    --green:#06C755;
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg)}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+    color:var(--ink);
+    max-width:480px;margin:0 auto;
+    min-height:100vh;
+    padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  }
+  /* ===== ヘッダー ===== */
+  header{
+    display:flex;align-items:center;gap:10px;
+    padding:16px 16px 10px;
+  }
+  .shop-mark{
+    width:38px;height:38px;border-radius:10px;background:var(--red);color:#FFF7EA;
+    display:flex;align-items:center;justify-content:center;
+    font-size:19px;font-weight:700;flex:none;
+  }
+  .shop-name{font-size:17px;font-weight:700;letter-spacing:.02em}
+  .shop-sub{font-size:11px;color:var(--ink-soft)}
+  .user-chip{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
+  .user-chip img{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#fff}
+  .user-chip .uname{font-size:13px;font-weight:600;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* ===== デモ表示 ===== */
+  .demo-notice{
+    margin:2px 16px 0;padding:7px 12px;border:1px dashed #C9A227;border-radius:10px;
+    background:#FFF8E1;color:#7A6210;font-size:12px;text-align:center;
+  }
+  main{padding:12px 16px 8px}
+  .view{display:none}
+  .view.active{display:block}
+  /* ===== ポイントカード ===== */
+  .balance-card{
+    background:var(--red);color:#FFF7EA;border-radius:var(--radius);
+    padding:22px 20px 18px;text-align:center;
+  }
+  .balance-label{font-size:13px;opacity:.85;letter-spacing:.08em}
+  .balance-num{font-size:56px;font-weight:800;line-height:1.1;margin:2px 0}
+  .balance-unit{font-size:15px;font-weight:600}
+  .balance-note{font-size:12px;opacity:.85;margin-top:4px}
+  /* ===== 会員カード ===== */
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;margin-top:14px;
+  }
+  .card h2{font-size:14px;font-weight:700;margin-bottom:10px;letter-spacing:.04em}
+  .member-code{
+    font-size:26px;font-weight:800;letter-spacing:.14em;text-align:center;margin:4px 0 12px;
+  }
+  .qr-wrap{display:flex;justify-content:center;padding:6px 0 4px}
+  .qr-wrap canvas{width:180px;height:180px}
+  .qr-fallback{text-align:center;font-size:13px;color:var(--ink-soft);padding:18px 0}
+  .guide-text{font-size:12.5px;color:var(--ink-soft);line-height:1.7;text-align:center;margin-top:8px}
+  /* ===== 特典 ===== */
+  .reward-item{
+    display:flex;align-items:center;gap:12px;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:12px;
+  }
+  .reward-info{flex:1;min-width:0}
+  .reward-name{font-size:15px;font-weight:700}
+  .reward-cost{font-size:13px;color:var(--red);font-weight:700;margin-top:2px}
+  .reward-item.bonus{border:1.5px solid var(--red);background:#FFF7EA}
+  .bonus-tag{
+    display:inline-block;background:var(--red);color:#fff;font-size:11px;font-weight:700;
+    border-radius:999px;padding:2px 9px;margin-bottom:5px;letter-spacing:.06em;
+  }
+  .btn{
+    appearance:none;border:none;cursor:pointer;font-family:inherit;
+    border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;
+  }
+  .btn-use{background:var(--red);color:#fff}
+  .btn-use:disabled{background:#D8CDBB;color:#9A8F7E;cursor:not-allowed}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  /* ===== 履歴 ===== */
+  .tx-item{
+    display:flex;align-items:center;gap:12px;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;margin-bottom:10px;
+  }
+  .tx-sign{
+    width:34px;height:34px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;font-weight:800;
+  }
+  .tx-sign.plus{background:#EAF7EE;color:#1E8A46}
+  .tx-sign.minus{background:#FBEDEA;color:var(--red)}
+  .tx-main{flex:1;min-width:0}
+  .tx-label{font-size:14px;font-weight:600}
+  .tx-date{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+  .tx-amount{font-size:15px;font-weight:800}
+  .tx-amount.plus{color:#1E8A46}
+  .tx-amount.minus{color:var(--red)}
+  .empty-text{text-align:center;color:var(--ink-soft);font-size:13px;padding:28px 0}
+  /* ===== 下部タブ ===== */
+  .tabbar{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:0;
+    width:100%;max-width:480px;
+    background:#FFFDF9;border-top:1px solid var(--line);
+    display:flex;padding-bottom:env(safe-area-inset-bottom);
+    z-index:40;
+  }
+  .tabbar button{
+    flex:1;background:none;border:none;cursor:pointer;font-family:inherit;
+    padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:#9A8F7E;font-size:11px;font-weight:600;
+  }
+  .tabbar button svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar button.active{color:var(--red)}
+  /* ===== ログイン画面 ===== */
+  .login-screen{padding:56px 24px 0;text-align:center}
+  .login-screen .big-mark{
+    width:76px;height:76px;border-radius:20px;background:var(--red);color:#FFF7EA;
+    display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;margin:0 auto 18px;
+  }
+  .login-screen h1{font-size:20px;margin-bottom:8px}
+  .login-screen p{font-size:13.5px;color:var(--ink-soft);line-height:1.8;margin-bottom:28px}
+  .btn-line{
+    background:var(--green);color:#fff;width:100%;max-width:320px;
+    padding:15px 18px;font-size:16px;border-radius:12px;
+  }
+  /* ===== モーダル ===== */
+  .modal-back{
+    position:fixed;inset:0;background:rgba(38,34,31,.5);
+    display:none;align-items:flex-end;justify-content:center;z-index:60;
+  }
+  .modal-back.show{display:flex}
+  .modal{
+    background:var(--card);width:100%;max-width:480px;
+    border-radius:18px 18px 0 0;padding:24px 20px calc(20px + env(safe-area-inset-bottom));
+    text-align:center;
+  }
+  .modal h3{font-size:17px;margin-bottom:10px}
+  .modal p{font-size:14px;color:var(--ink-soft);line-height:1.8}
+  .modal .btn-row{display:flex;gap:10px;margin-top:20px}
+  .modal .btn-row .btn{flex:1;padding:14px}
+  .redeem-code{
+    font-size:40px;font-weight:800;letter-spacing:.18em;color:var(--red);
+    margin:14px 0 6px;
+  }
+  .redeem-reward{font-size:16px;font-weight:700}
+  .redeem-time{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+  .earn-big{font-size:22px;font-weight:800;color:var(--red);margin:8px 0}
+  /* ===== トースト ===== */
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(92px + env(safe-area-inset-bottom));
+    background:var(--ink);color:#FFF7EA;font-size:13.5px;font-weight:600;
+    padding:11px 18px;border-radius:999px;max-width:88%;
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:80;text-align:center;
+  }
+  .toast.show{opacity:1}
+  /* ===== 読み込み ===== */
+  .loading{
+    position:fixed;inset:0;background:var(--bg);z-index:100;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;color:var(--ink-soft);
+  }
+  .loading.hide{display:none}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loadingOverlay">読み込み中...</div>
+
+<!-- ===================== ヘッダー ===================== -->
+<header id="appHeader" style="display:none">
+  <div class="shop-mark">竹</div>
+  <div>
+    <div class="shop-name" id="headerShop">中華そば 竹むら</div>
+    <div class="shop-sub">ポイントカード</div>
+  </div>
+  <div class="user-chip" id="userChip" style="display:none">
+    <img id="headerAvatar" alt="">
+    <span class="uname" id="headerName"></span>
+  </div>
+</header>
+<div class="demo-notice" id="demoNotice" style="display:none">デモモード：LINE未連携のため、データはこの端末に保存されます</div>
+
+<!-- ===================== ログイン画面（LIFFモード時のみ） ===================== -->
+<div class="login-screen" id="loginScreen" style="display:none">
+  <div class="big-mark">竹</div>
+  <h1>中華そば 竹むら</h1>
+  <p>ポイントを確認・ためるには<br>LINEログインが必要です。</p>
+  <button class="btn btn-line" id="lineLoginBtn">LINEでログイン</button>
+</div>
+
+<!-- ===================== メイン ===================== -->
+<main id="appMain" style="display:none">
+
+  <!-- ホーム -->
+  <section class="view active" id="viewHome">
+    <div class="balance-card">
+      <div class="balance-label">現在のポイント</div>
+      <div><span class="balance-num" id="balanceValue">0</span> <span class="balance-unit">pt</span></div>
+      <div class="balance-note">来店ごとにポイントがたまります</div>
+    </div>
+
+    <div class="card">
+      <h2>会員カード</h2>
+      <div class="member-code" id="memberCodeText">TM------</div>
+      <div class="qr-wrap">
+        <canvas id="memberQrCanvas" width="180" height="180" style="display:none"></canvas>
+        <div class="qr-fallback" id="memberQrFallback" style="display:none">会員コードをスタッフにお伝えください</div>
+      </div>
+      <p class="guide-text">お会計のとき、この画面をスタッフに見せてください。<br>来店ポイント用のQRコードは店内に掲示しています。</p>
+    </div>
+  </section>
+
+  <!-- 履歴 -->
+  <section class="view" id="viewHistory">
+    <div id="historyList"></div>
+    <p class="empty-text" id="historyEmpty" style="display:none">まだ履歴がありません</p>
+  </section>
+
+  <!-- 特典 -->
+  <section class="view" id="viewRewards">
+    <div id="rewardsList"></div>
+    <p class="guide-text">「使う」を押すと交換コードが発行されます。<br>発行した画面をスタッフに見せてください。</p>
+  </section>
+</main>
+
+<!-- ===================== 下部タブ ===================== -->
+<nav class="tabbar" id="tabBar" style="display:none">
+  <button data-tab="home" class="active">
+    <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg>
+    ホーム
+  </button>
+  <button data-tab="history">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    履歴
+  </button>
+  <button data-tab="rewards">
+    <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10"/><path d="M12 10v10M4 14.5h16"/><path d="M12 10c-4.5 0-5.5-1.6-5.5-3A2.4 2.4 0 0 1 11 5.2C11.8 6 12 8 12 10Zm0 0c4.5 0 5.5-1.6 5.5-3A2.4 2.4 0 0 0 13 5.2C12.2 6 12 8 12 10Z"/></svg>
+    特典
+  </button>
+</nav>
+
+<!-- ===================== 確認モーダル ===================== -->
+<div class="modal-back" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">確認</h3>
+    <p id="confirmText"></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="confirmCancel">キャンセル</button>
+      <button class="btn btn-use" id="confirmOk">使う</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 交換コード画面 ===================== -->
+<div class="modal-back" id="redeemModal">
+  <div class="modal">
+    <h3>交換コード</h3>
+    <div class="redeem-reward" id="redeemRewardName"></div>
+    <div class="redeem-code" id="redeemCode"></div>
+    <div class="redeem-time" id="redeemTime"></div>
+    <p style="margin-top:12px">スタッフにこの画面を見せてください（15分以内）</p>
+    <div class="btn-row">
+      <button class="btn btn-use" id="redeemClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ポイント獲得モーダル ===================== -->
+<div class="modal-back" id="earnModal">
+  <div class="modal">
+    <h3>ポイントを獲得しました！</h3>
+    <div class="earn-big" id="earnAmount"></div>
+    <p>ご来店ありがとうございます。</p>
+    <div class="btn-row">
+      <button class="btn btn-use" id="earnClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- QRコード生成ライブラリ（失敗しても会員コードの文字表示で代替します） -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<script>
+"use strict";
+/* =====================================================================
+   CONFIG — 設定はすべてここだけを編集します
+   CẤU HÌNH — mọi thứ cần dán/sửa sau này đều nằm ở khối này:
+   - LIFF_ID:        dán LIFF ID sau khi tạo LIFF app trong LINE Developers
+   - firebaseConfig: dán nguyên đoạn cấu hình Firebase (Project settings)
+   - Tỉ lệ điểm + giá các phần thưởng bên dưới đang là SỐ TẠM （仮）,
+     chủ quán chốt xong chỉ cần sửa đúng chỗ này.
+   ===================================================================== */
+const CONFIG = {
+  LIFF_ID: "",              // 未連携：空 = demo mode / Chưa liên kết LINE thì để trống
+  firebaseConfig: null,     // 未連携：null = localStorage demo / Chưa liên kết Firebase thì để null
+  SHOP_NAME: "中華そば 竹むら",
+  POINTS_PER_VISIT: 1,      // 仮：1来店 = 1pt（TẠM: 1 lần đến quán = 1 điểm）
+  SHOP_EARN_TOKEN: "takemura-visit", // 店内QRの ?earn= トークン / token trong link QR tại quán
+  // 特典リスト（anh chốt lại 2026-11-17 15:40: 4 mức chính thức）
+  REWARDS: [
+    { id: "topping-3",   name: "お好きなトッピング1つ無料", cost: 3 },
+    { id: "don-5",       name: "丼もの 1品無料", cost: 5 },
+    { id: "ramen-8",     name: "中華そば または 鳥家系ラーメン 1杯無料", cost: 8 },
+    { id: "any-ramen-10", name: "お好きなラーメン 1杯無料", cost: 10 }
+  ],
+  // 初回ログイン特典（1人1回限り）/ Quà đăng nhập lần đầu, mỗi người 1 lần:
+  // 「トッピング1つ無料」または「大盛り無料」のどちらかをお店で選べます
+  SIGNUP_BONUS_NAME: "初回特典：トッピング1つ無料 または 大盛り無料"
+};
+
+/* =====================================================================
+   状態 / Trạng thái chung của ứng dụng
+   ===================================================================== */
+const state = {
+  identity: null,   // { userId, displayName, pictureUrl }
+  isDemo: false,    // true = không dùng LINE (khách mời demo)
+  user: null,       // user document { points, memberCode, lastEarnDate, ... }
+  rewards: CONFIG.REWARDS,
+  transactions: []
+};
+
+/* =====================================================================
+   ユーティリティ / Hàm tiện ích
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+
+function todayStr(){
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return d.getFullYear() + "-" + m + "-" + day;
+}
+function fmtDateTime(ts){
+  if (!ts) return "";
+  return new Date(ts).toLocaleString("ja-JP", {
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+}
+function fmtTime(ts){
+  return new Date(ts).toLocaleString("ja-JP", {
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+}
+/* userId から安定した会員コード TM-XXXXXX を作る / Tạo mã hội viên ổn định từ userId */
+function memberCodeFrom(userId){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < userId.length; i++){
+    h ^= userId.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  let code = "", x = h || 123456789;
+  for (let i = 0; i < 6; i++){
+    x = (Math.imul(x, 1103515245) + 12345) >>> 0;
+    code += chars[x % chars.length];
+  }
+  return "TM-" + code;
+}
+/* 交換コード（6文字）/ Mã đổi thưởng ngẫu nhiên 6 ký tự */
+function randomRedeemCode(){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+let toastTimer = null;
+function toast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+/* =====================================================================
+   本人確認 / Xác định danh tính người dùng
+   - LIFF_ID があれば LINE ログイン、失敗したらデモ身份に自動で切り替え
+   - Có LIFF_ID thì đăng nhập LINE; lỗi/không có thì tự chuyển chế độ demo
+   ===================================================================== */
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+/* 戻り値: identity オブジェクト、または "NEEDS_LOGIN"（LINEログイン待ち） */
+async function resolveIdentity(){
+  if (CONFIG.LIFF_ID){
+    try {
+      await loadScript("https://static.line-scdn.net/liff/edge/2/sdk.js");
+      await liff.init({ liffId: CONFIG.LIFF_ID });
+      if (!liff.isLoggedIn()){
+        $("loginScreen").style.display = "block";
+        $("lineLoginBtn").addEventListener("click", () => { try { liff.login(); } catch(e){ toast("ログインを開始できませんでした"); } });
+        return "NEEDS_LOGIN";
+      }
+      const p = await liff.getProfile();
+      return { userId: p.userId, displayName: p.displayName || "お客様", pictureUrl: p.pictureUrl || "" };
+    } catch (e) {
+      console.warn("LIFF init failed, fallback to demo:", e);
+    }
+  }
+  state.isDemo = true;
+  return { userId: "demo-guest", displayName: "ゲスト", pictureUrl: "" };
+}
+
+/* =====================================================================
+   データ層 / Lớp dữ liệu — 2 backend dùng chung 1 giao diện:
+   - firebaseConfig があれば Firestore
+   - なければ localStorage（接頭辞 takemura_demo_）で全く同じ動作
+   ===================================================================== */
+const DataLayer = {
+  mode: "local",       // "firestore" | "local"
+  db: null, fs: null, uid: null,
+
+  async init(identity){
+    this.uid = identity.userId;
+    if (CONFIG.firebaseConfig){
+      try {
+        const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+        this.fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        const app = appMod.initializeApp(CONFIG.firebaseConfig);
+        this.db = this.fs.getFirestore(app);
+        this.mode = "firestore";
+      } catch (e) {
+        console.warn("Firestore init failed, fallback to localStorage:", e);
+        this.mode = "local";
+      }
+    }
+  },
+
+  /* --- localStorage backend --- */
+  _lkey(kind){ return "takemura_demo_" + kind + "_" + this.uid; },
+  _lread(kind, fallback){
+    try {
+      const raw = localStorage.getItem(this._lkey(kind));
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  },
+  _lwrite(kind, value){
+    try { localStorage.setItem(this._lkey(kind), JSON.stringify(value)); } catch (e) {}
+  },
+
+  /* ユーザーを取得、なければ作成 / Lấy user, chưa có thì tạo mới */
+  async ensureUser(identity){
+    if (this.mode === "firestore"){
+      const fs = this.fs;
+      const ref = fs.doc(this.db, "users", this.uid);
+      const snap = await fs.getDoc(ref);
+      if (snap.exists()){
+        const d = snap.data();
+        return {
+          displayName: d.displayName || identity.displayName,
+          pictureUrl: d.pictureUrl || identity.pictureUrl || "",
+          points: d.points || 0,
+          memberCode: d.memberCode || memberCodeFrom(this.uid),
+          lastEarnDate: d.lastEarnDate || null,
+          signupBonusUsed: d.signupBonusUsed || false
+        };
+      }
+      const fresh = {
+        displayName: identity.displayName,
+        pictureUrl: identity.pictureUrl || "",
+        points: 0,
+        memberCode: memberCodeFrom(this.uid),
+        createdAt: fs.serverTimestamp(),
+        lastEarnDate: null,
+        signupBonusUsed: false
+      };
+      await fs.setDoc(ref, fresh);
+      return { ...fresh, createdAt: Date.now() };
+    }
+    // local
+    let u = this._lread("user", null);
+    if (!u){
+      u = {
+        displayName: identity.displayName,
+        pictureUrl: identity.pictureUrl || "",
+        points: 0,
+        memberCode: memberCodeFrom(this.uid),
+        createdAt: Date.now(),
+        lastEarnDate: null,
+        signupBonusUsed: false
+      };
+      this._lwrite("user", u);
+    }
+    return u;
+  },
+
+  /* ポイント増減 + 履歴追加をまとめて実行 / Cộng-trừ điểm và ghi lịch sử trong 1 lần */
+  async applyTransaction(tx, extraUserFields){
+    // tx: { type:"earn"|"redeem", amount: 符号つき増減, label, code? }
+    if (this.mode === "firestore"){
+      const fs = this.fs;
+      const ref = fs.doc(this.db, "users", this.uid);
+      const newPoints = (state.user.points || 0) + tx.amount;
+      const patch = { points: newPoints, ...(extraUserFields || {}) };
+      await fs.updateDoc(ref, patch);
+      await fs.addDoc(fs.collection(this.db, "transactions"), {
+        userId: this.uid,
+        type: tx.type,
+        amount: tx.amount,
+        label: tx.label,
+        code: tx.code || null,
+        createdAt: fs.serverTimestamp()
+      });
+      return { ...state.user, ...patch };
+    }
+    // local
+    const u = this._lread("user", state.user);
+    u.points = (u.points || 0) + tx.amount;
+    if (extraUserFields) Object.assign(u, extraUserFields);
+    this._lwrite("user", u);
+    const list = this._lread("tx", []);
+    list.push({
+      userId: this.uid, type: tx.type, amount: tx.amount,
+      label: tx.label, code: tx.code || null, createdAt: Date.now()
+    });
+    this._lwrite("tx", list);
+    return u;
+  },
+
+  /* 履歴一覧（新しい順）/ Danh sách lịch sử, mới nhất trước */
+  async listTransactions(){
+    if (this.mode === "firestore"){
+      const fs = this.fs;
+      const q = fs.query(
+        fs.collection(this.db, "transactions"),
+        fs.where("userId", "==", this.uid),
+        fs.orderBy("createdAt", "desc")
+      );
+      const snap = await fs.getDocs(q);
+      return snap.docs.map(d => {
+        const x = d.data();
+        return {
+          type: x.type, amount: x.amount, label: x.label, code: x.code || null,
+          createdAt: x.createdAt && x.createdAt.toDate ? x.createdAt.toDate().getTime() : (x.createdAt || Date.now())
+        };
+      });
+    }
+    const list = this._lread("tx", []);
+    return list.slice().sort((a, b) => b.createdAt - a.createdAt);
+  },
+
+  /* 店舗設定 settings/shop の earnToken（あれば）/ Token cộng điểm trong settings/shop nếu có */
+  async getEarnToken(){
+    if (this.mode !== "firestore") return null;
+    try {
+      const snap = await this.fs.getDoc(this.fs.doc(this.db, "settings", "shop"));
+      if (snap.exists() && snap.data().earnToken) return snap.data().earnToken;
+    } catch (e) { /* 取れなければ CONFIG にフォールバック */ }
+    return null;
+  },
+
+  /* 特典コレクション（あれば）/ Danh sách rewards trên Firestore nếu có */
+  async listRewards(){
+    if (this.mode !== "firestore") return null;
+    try {
+      const snap = await this.fs.getDocs(this.fs.collection(this.db, "rewards"));
+      if (snap.empty) return null;
+      return snap.docs.map(d => {
+        const x = d.data();
+        return { id: d.id, name: x.name, cost: x.cost };
+      }).filter(r => r.name && typeof r.cost === "number");
+    } catch (e) { return null; }
+  }
+};
+
+/* =====================================================================
+   画面描画 / Vẽ giao diện
+   ===================================================================== */
+function renderHeader(){
+  $("headerShop").textContent = CONFIG.SHOP_NAME;
+  if (state.identity){
+    $("userChip").style.display = "flex";
+    $("headerName").textContent = state.identity.displayName;
+    const img = $("headerAvatar");
+    if (state.identity.pictureUrl){ img.src = state.identity.pictureUrl; img.style.display = "block"; }
+    else img.style.display = "none";
+  }
+  $("demoNotice").style.display = state.isDemo ? "block" : "none";
+}
+function renderHome(){
+  if (!state.user) return;
+  $("balanceValue").textContent = state.user.points || 0;
+  $("memberCodeText").textContent = state.user.memberCode || memberCodeFrom(state.identity.userId);
+  drawMemberQr(state.user.memberCode || memberCodeFrom(state.identity.userId));
+}
+function drawMemberQr(code){
+  const canvas = $("memberQrCanvas");
+  const fallback = $("memberQrFallback");
+  if (window.QRCode && QRCode.toCanvas){
+    try {
+      QRCode.toCanvas(canvas, code, { width: 180, margin: 1 }, (err) => {
+        if (err){ canvas.style.display = "none"; fallback.style.display = "block"; }
+        else { canvas.style.display = "block"; fallback.style.display = "none"; }
+      });
+      return;
+    } catch (e) { /* 下のフォールバックへ */ }
+  }
+  canvas.style.display = "none";
+  fallback.style.display = "block";
+}
+function renderRewards(){
+  const list = $("rewardsList");
+  list.innerHTML = "";
+  const balance = state.user ? (state.user.points || 0) : 0;
+  // 初回ログイン特典（未使用のときだけ先頭に表示）/ Thẻ quà lần đầu: chỉ hiện khi chưa dùng
+  if (state.user && !state.user.signupBonusUsed){
+    const row = document.createElement("div");
+    row.className = "reward-item bonus";
+    const info = document.createElement("div");
+    info.className = "reward-info";
+    const tag = document.createElement("span");
+    tag.className = "bonus-tag"; tag.textContent = "初回限定";
+    const nm = document.createElement("div");
+    nm.className = "reward-name"; nm.textContent = CONFIG.SIGNUP_BONUS_NAME;
+    const cs = document.createElement("div");
+    cs.className = "reward-cost"; cs.textContent = "初回ログイン特典・1回限り（ポイント不要）";
+    info.appendChild(tag); info.appendChild(nm); info.appendChild(cs);
+    const btn = document.createElement("button");
+    btn.className = "btn btn-use"; btn.textContent = "使う";
+    btn.addEventListener("click", () => confirmBonus());
+    row.appendChild(info); row.appendChild(btn);
+    list.appendChild(row);
+  }
+  state.rewards.forEach(r => {
+    const row = document.createElement("div");
+    row.className = "reward-item";
+    const info = document.createElement("div");
+    info.className = "reward-info";
+    const nm = document.createElement("div");
+    nm.className = "reward-name"; nm.textContent = r.name;
+    const cs = document.createElement("div");
+    cs.className = "reward-cost"; cs.textContent = r.cost + " pt";
+    info.appendChild(nm); info.appendChild(cs);
+    const btn = document.createElement("button");
+    btn.className = "btn btn-use"; btn.textContent = "使う";
+    btn.disabled = balance < r.cost;
+    btn.addEventListener("click", () => confirmRedeem(r));
+    row.appendChild(info); row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+function renderHistory(){
+  const list = $("historyList");
+  list.innerHTML = "";
+  $("historyEmpty").style.display = state.transactions.length ? "none" : "block";
+  state.transactions.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "tx-item";
+    const isBonus = t.amount === 0;
+    const isPlus = t.amount >= 0;
+    const sign = document.createElement("div");
+    sign.className = "tx-sign " + (isPlus ? "plus" : "minus");
+    sign.textContent = isBonus ? "特" : (isPlus ? "+" : "−");
+    const main = document.createElement("div");
+    main.className = "tx-main";
+    const lb = document.createElement("div");
+    lb.className = "tx-label";
+    lb.textContent = t.label + (t.code ? "（コード：" + t.code + "）" : "");
+    const dt = document.createElement("div");
+    dt.className = "tx-date"; dt.textContent = fmtDateTime(t.createdAt);
+    main.appendChild(lb); main.appendChild(dt);
+    const amt = document.createElement("div");
+    amt.className = "tx-amount " + (isPlus ? "plus" : "minus");
+    amt.textContent = isBonus ? "特典" : ((isPlus ? "+" : "−") + Math.abs(t.amount) + " pt");
+    row.appendChild(sign); row.appendChild(main); row.appendChild(amt);
+    list.appendChild(row);
+  });
+}
+async function refreshData(){
+  state.transactions = await DataLayer.listTransactions();
+  renderHome(); renderRewards(); renderHistory();
+}
+
+/* =====================================================================
+   タブ切り替え / Chuyển tab (SPA, không tải lại trang)
+   ===================================================================== */
+function switchTab(name){
+  document.querySelectorAll(".tabbar button").forEach(b => {
+    b.classList.toggle("active", b.dataset.tab === name);
+  });
+  $("viewHome").classList.toggle("active", name === "home");
+  $("viewHistory").classList.toggle("active", name === "history");
+  $("viewRewards").classList.toggle("active", name === "rewards");
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll(".tabbar button").forEach(b => {
+  b.addEventListener("click", () => switchTab(b.dataset.tab));
+});
+
+/* =====================================================================
+   来店ポイント（店内QR ?earn=）/ Cộng điểm khi quét QR tại quán
+   - 1日1回まで（lastEarnDate で判定）/ Mỗi ngày tối đa 1 lần
+   ===================================================================== */
+async function processEarnParam(){
+  const params = new URLSearchParams(location.search);
+  if (!params.has("earn")) return;
+  const token = params.get("earn");
+  // 処理後にURLからパラメータを消す / Xóa tham số khỏi URL sau khi xử lý
+  const url = new URL(location.href);
+  url.searchParams.delete("earn");
+  history.replaceState(null, "", url.toString());
+
+  let expected = CONFIG.SHOP_EARN_TOKEN;
+  const remote = await DataLayer.getEarnToken();
+  if (remote) expected = remote;
+
+  if (token !== expected){
+    toast("このQRコードは無効です");
+    return;
+  }
+  if (state.user.lastEarnDate === todayStr()){
+    toast("本日はすでに取得済みです");
+    return;
+  }
+  state.user = await DataLayer.applyTransaction(
+    { type: "earn", amount: CONFIG.POINTS_PER_VISIT, label: "来店ポイント" },
+    { lastEarnDate: todayStr() }
+  );
+  await refreshData();
+  $("earnAmount").textContent = "+" + CONFIG.POINTS_PER_VISIT + " pt";
+  $("earnModal").classList.add("show");
+}
+$("earnClose").addEventListener("click", () => $("earnModal").classList.remove("show"));
+
+/* =====================================================================
+   特典交換 / Đổi thưởng
+   ===================================================================== */
+let pendingReward = null;
+let pendingIsBonus = false;
+function confirmRedeem(reward){
+  pendingReward = reward;
+  pendingIsBonus = false;
+  const balance = state.user.points || 0;
+  $("confirmText").textContent =
+    "「" + reward.name + "」を " + reward.cost + " pt で交換しますか？（交換後の残高：" + (balance - reward.cost) + " pt）";
+  $("confirmModal").classList.add("show");
+}
+/* 初回特典の確認 / Xác nhận dùng quà đăng nhập lần đầu (không trừ điểm) */
+function confirmBonus(){
+  pendingReward = null;
+  pendingIsBonus = true;
+  $("confirmText").textContent =
+    "初回特典を使いますか？お店で「トッピング1つ無料」または「大盛り無料」のどちらかをお選びいただけます。（1回限り・ポイントは減りません）";
+  $("confirmModal").classList.add("show");
+}
+$("confirmCancel").addEventListener("click", () => {
+  pendingReward = null;
+  pendingIsBonus = false;
+  $("confirmModal").classList.remove("show");
+});
+$("confirmOk").addEventListener("click", async () => {
+  if (pendingIsBonus){
+    pendingIsBonus = false;
+    $("confirmModal").classList.remove("show");
+    try {
+      const code = randomRedeemCode();
+      const issuedAt = Date.now();
+      state.user = await DataLayer.applyTransaction(
+        { type: "redeem", amount: 0, label: CONFIG.SIGNUP_BONUS_NAME, code: code },
+        { signupBonusUsed: true }
+      );
+      await refreshData();
+      $("redeemRewardName").textContent = CONFIG.SIGNUP_BONUS_NAME;
+      $("redeemCode").textContent = code;
+      $("redeemTime").textContent = "発行時刻：" + fmtTime(issuedAt);
+      $("redeemModal").classList.add("show");
+    } catch (e) {
+      console.error(e);
+      toast("交換に失敗しました。もう一度お試しください");
+    }
+    return;
+  }
+  if (!pendingReward) return;
+  const reward = pendingReward;
+  pendingReward = null;
+  $("confirmModal").classList.remove("show");
+  try {
+    if ((state.user.points || 0) < reward.cost){
+      toast("ポイントが不足しています");
+      renderRewards();
+      return;
+    }
+    const code = randomRedeemCode();
+    const issuedAt = Date.now();
+    state.user = await DataLayer.applyTransaction(
+      { type: "redeem", amount: -reward.cost, label: reward.name, code: code }
+    );
+    await refreshData();
+    $("redeemRewardName").textContent = reward.name;
+    $("redeemCode").textContent = code;
+    $("redeemTime").textContent = "発行時刻：" + fmtTime(issuedAt);
+    $("redeemModal").classList.add("show");
+  } catch (e) {
+    console.error(e);
+    toast("交換に失敗しました。もう一度お試しください");
+  }
+});
+$("redeemClose").addEventListener("click", () => $("redeemModal").classList.remove("show"));
+
+/* =====================================================================
+   起動 / Khởi động: danh tính → dữ liệu → vẽ giao diện → xử lý QR cộng điểm
+   ===================================================================== */
+(async function init(){
+  try {
+    const identity = await resolveIdentity();
+    if (identity === "NEEDS_LOGIN"){
+      $("loadingOverlay").classList.add("hide");
+      return; // ログイン画面のみ表示
+    }
+    state.identity = identity;
+    await DataLayer.init(identity);
+    state.user = await DataLayer.ensureUser(identity);
+    const remoteRewards = await DataLayer.listRewards();
+    if (remoteRewards && remoteRewards.length) state.rewards = remoteRewards;
+    state.transactions = await DataLayer.listTransactions();
+
+    $("appHeader").style.display = "flex";
+    $("appMain").style.display = "block";
+    $("tabBar").style.display = "flex";
+    renderHeader(); renderHome(); renderRewards(); renderHistory();
+    $("loadingOverlay").classList.add("hide");
+
+    try { await processEarnParam(); }
+    catch (e) { console.error(e); toast("ポイント付与に失敗しました"); }
+  } catch (e) {
+    console.error(e);
+    $("loadingOverlay").classList.add("hide");
+    toast("読み込みに失敗しました。通信環境をご確認ください");
+  }
+})();
+</script>
+</body>
+</html>
