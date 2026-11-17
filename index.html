@@ -544,20 +544,26 @@ const DataLayer = {
   /* 履歴一覧（新しい順）/ Danh sách lịch sử, mới nhất trước */
   async listTransactions(){
     if (this.mode === "firestore"){
-      const fs = this.fs;
-      const q = fs.query(
-        fs.collection(this.db, "transactions"),
-        fs.where("userId", "==", this.uid),
-        fs.orderBy("createdAt", "desc")
-      );
-      const snap = await fs.getDocs(q);
-      return snap.docs.map(d => {
-        const x = d.data();
-        return {
-          type: x.type, amount: x.amount, label: x.label, code: x.code || null,
-          createdAt: x.createdAt && x.createdAt.toDate ? x.createdAt.toDate().getTime() : (x.createdAt || Date.now())
-        };
-      });
+      try {
+        const fs = this.fs;
+        // orderBy を使うと複合インデックスが必要になるため、並び替えは手元で行う
+        // Không dùng orderBy (đòi chỉ mục phức hợp) — sắp xếp ngay tại máy khách
+        const q = fs.query(
+          fs.collection(this.db, "transactions"),
+          fs.where("userId", "==", this.uid)
+        );
+        const snap = await fs.getDocs(q);
+        return snap.docs.map(d => {
+          const x = d.data();
+          return {
+            type: x.type, amount: x.amount, label: x.label, code: x.code || null,
+            createdAt: x.createdAt && x.createdAt.toDate ? x.createdAt.toDate().getTime() : (x.createdAt || Date.now())
+          };
+        }).sort((a, b) => b.createdAt - a.createdAt);
+      } catch (e) {
+        console.warn("listTransactions failed:", e);
+        return [];
+      }
     }
     const list = this._lread("tx", []);
     return list.slice().sort((a, b) => b.createdAt - a.createdAt);
