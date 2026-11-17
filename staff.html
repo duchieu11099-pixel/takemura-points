@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>竹むら スタッフ用｜会員照会</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+  :root{
+    --bg:#17100A; --card:#2A1C10; --ink:#F1E5CB; --ink-soft:#B79F78;
+    --line:#43321E; --gold:#D9A441; --gold-dark:#8A6420; --green:#2E9E5B; --red:#E88A76;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg);color:var(--ink);
+    max-width:640px;margin:0 auto;padding:18px 16px 40px;min-height:100vh;
+  }
+  h1{font-size:19px;letter-spacing:.03em}
+  .sub{font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+  .card h2{font-size:14px;letter-spacing:.05em;margin-bottom:10px}
+  video{width:100%;border-radius:10px;background:#000;display:none}
+  video.on{display:block}
+  .btn{
+    appearance:none;border:none;cursor:pointer;font-family:inherit;border-radius:10px;
+    padding:12px 16px;font-size:14.5px;font-weight:700;background:var(--gold);color:#241708;width:100%;
+  }
+  .btn.sub{background:#1E1409;color:var(--ink);border:1px solid var(--line)}
+  .row{display:flex;gap:10px}
+  .row .btn{flex:1}
+  input{
+    flex:1;background:#1E1409;border:1px solid var(--line);border-radius:10px;color:var(--ink);
+    padding:12px 14px;font-size:15px;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;
+  }
+  .status{font-size:13px;color:var(--ink-soft);margin-top:10px;min-height:1.4em;line-height:1.6}
+  .cust-points{font-size:44px;font-weight:800;color:var(--gold);line-height:1.1}
+  .cust-points small{font-size:15px;color:var(--ink);font-weight:600}
+  .kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  .kv:last-child{border-bottom:none}
+  .kv b{font-weight:700;text-align:right}
+  .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;letter-spacing:.04em}
+  .tag.ok{background:#1E3A24;color:#7BD88F}
+  .tag.used{background:#3A2019;color:var(--red)}
+  .tag.avail{background:var(--gold);color:#241708}
+  .hist{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .hist:last-child{border-bottom:none}
+  .hist .d{color:var(--ink-soft);font-size:11.5px}
+  .hist .pt{margin-left:auto;font-weight:800;white-space:nowrap}
+  .scan-row{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;
+    background:#1E1409;border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:8px;color:var(--ink);font-family:inherit;
+  }
+  .scan-row .code{font-weight:800;letter-spacing:.06em}
+  .scan-row .meta{margin-left:auto;font-size:12px;color:var(--ink-soft);text-align:right;line-height:1.5}
+  .scan-row .meta b{color:var(--gold);font-size:13px}
+  .empty{font-size:13px;color:var(--ink-soft);padding:8px 0}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+  <h1>中華そば 竹むら｜スタッフ用 会員照会</h1>
+  <p class="sub">お客様の会員QRコードを読み取ると、その場でポイントと履歴が表示されます。このページのURLはお客様に共有しないでください。</p>
+
+  <div class="card">
+    <h2>QRコードを読み取る</h2>
+    <video id="cam" playsinline muted></video>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="btnScan" type="button">カメラで読み取る</button>
+      <button class="btn sub hidden" id="btnStop" type="button">停止</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="codeInput" placeholder="会員コード（例：TM-XXXXXX）" autocomplete="off">
+      <button class="btn" id="btnLookup" type="button" style="flex:0 0 96px">照会</button>
+    </div>
+    <p class="status" id="scanStatus">読み取り待機中です。</p>
+  </div>
+
+  <div class="card hidden" id="custCard">
+    <h2>お客様情報</h2>
+    <div class="cust-points"><span id="cPoints">0</span> <small>pt</small></div>
+    <div style="margin-top:8px">
+      <div class="kv"><span>会員コード</span><b id="cCode">—</b></div>
+      <div class="kv"><span>初回ログイン特典</span><b id="cGift">—</b></div>
+      <div class="kv"><span>最終の来店ポイント</span><b id="cLastEarn">—</b></div>
+    </div>
+    <h2 style="margin-top:16px">クーポン</h2>
+    <div id="cCoupons"><p class="empty">クーポンはありません</p></div>
+    <h2 style="margin-top:16px">最近の履歴</h2>
+    <div id="cHistory"><p class="empty">まだ履歴がありません</p></div>
+  </div>
+
+  <div class="card">
+    <h2>読み取り履歴（リアルタイム）</h2>
+    <div id="scanList"><p class="empty">まだ読み取りがありません</p></div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, query, where, orderBy, limit, getDocs,
+    doc, updateDoc, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const app = initializeApp({ apiKey: "AIzaSyAypcbm892utu78vjGgECsd0OffZ_3_7as", authDomain: "takemura-points.firebaseapp.com", projectId: "takemura-points", storageBucket: "takemura-points.firebasestorage.app", messagingSenderId: "752331221703", appId: "1:752331221703:web:ed9fa683e811de3f8f6ce2" });
+  const db = getFirestore(app);
+  const $ = (id) => document.getElementById(id);
+  const COUPON_TITLES = {
+    gift: "初回ログイン特典",
+    r3: "トッピング1品 無料",
+    r5: "丼もの 1品 無料",
+    r8: "中華そば または 鳥家系ラーメン 1杯無料",
+    r10: "お好きなラーメン どれでも1杯無料"
+  };
+  let currentUnsub = null;
+
+  function setStatus(msg){ $("scanStatus").textContent = msg; }
+
+  function fmtTime(ts){
+    if (!ts || !ts.toDate) return "—";
+    const d = ts.toDate();
+    const p = (n) => (n < 10 ? "0" : "") + n;
+    return d.getFullYear() + "/" + p(d.getMonth()+1) + "/" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+  }
+
+  function renderCustomer(id, d){
+    $("custCard").classList.remove("hidden");
+    $("cPoints").textContent = d.points || 0;
+    $("cCode").textContent = d.memberCode || "—";
+    const gift = (d.coupons || {}).gift;
+    $("cGift").innerHTML = !d.giftIssued
+      ? '<span class="tag avail">未発行</span>'
+      : (gift && gift.used ? '<span class="tag used">使用済み</span>' : '<span class="tag ok">利用可能</span>');
+    $("cLastEarn").textContent = d.lastEarnDate || "—";
+    const cps = d.coupons || {};
+    const keys = Object.keys(cps);
+    $("cCoupons").innerHTML = keys.length ? keys.map((k) => {
+      const c = cps[k];
+      const tag = c.used ? '<span class="tag used">使用済み</span>' : '<span class="tag ok">' + (c.code || "") + '</span>';
+      return '<div class="kv"><span>' + (COUPON_TITLES[k] || k) + '</span><b>' + tag + '</b></div>';
+    }).join("") : '<p class="empty">クーポンはありません</p>';
+    const hist = (d.history || []).slice(0, 10);
+    $("cHistory").innerHTML = hist.length ? hist.map((h) => {
+      const pt = h.delta > 0 ? '<span class="pt" style="color:#7BD88F">+' + h.delta + ' pt</span>'
+        : h.delta < 0 ? '<span class="pt" style="color:#E88A76">' + h.delta + ' pt</span>' : "";
+      return '<div class="hist"><div><b>' + h.label + '</b><div class="d">' + h.date + '</div></div>' + pt + '</div>';
+    }).join("") : '<p class="empty">まだ履歴がありません</p>';
+  }
+
+  async function lookupByCode(raw){
+    let code = (raw || "").trim().toUpperCase();
+    const m = code.match(/TM-[A-Z0-9]{6}/);
+    if (m) code = m[0];
+    if (!code){ setStatus("コードを読み取れませんでした。もう一度お試しください。"); return; }
+    setStatus("照会中：" + code);
+    try {
+      const q = query(collection(db, "users"), where("memberCode", "==", code), limit(1));
+      const snap = await getDocs(q);
+      if (snap.empty){
+        setStatus("会員が見つかりませんでした：" + code);
+        return;
+      }
+      const docSnap = snap.docs[0];
+      setStatus("会員を表示しています：" + code);
+      try { await updateDoc(doc(db, "users", docSnap.id), { lastScannedAt: serverTimestamp() }); } catch (e) {}
+      if (currentUnsub) currentUnsub();
+      currentUnsub = onSnapshot(doc(db, "users", docSnap.id), (s) => {
+        if (s.exists()) renderCustomer(docSnap.id, s.data());
+      });
+    } catch (e) {
+      console.error(e);
+      setStatus("照会に失敗しました。通信環境をご確認ください。");
+    }
+  }
+
+  /* リアルタイム：読み取り履歴 */
+  try {
+    const rq = query(collection(db, "users"), orderBy("lastScannedAt", "desc"), limit(15));
+    onSnapshot(rq, (snap) => {
+      if (snap.empty){
+        $("scanList").innerHTML = '<p class="empty">まだ読み取りがありません</p>';
+        return;
+      }
+      $("scanList").innerHTML = "";
+      snap.forEach((s) => {
+        const d = s.data();
+        const b = document.createElement("button");
+        b.className = "scan-row"; b.type = "button";
+        b.innerHTML = '<span class="code">' + (d.memberCode || "—") + '</span>' +
+          '<span class="meta"><b>' + (d.points || 0) + ' pt</b><br>' + fmtTime(d.lastScannedAt) + '</span>';
+        b.addEventListener("click", () => lookupByCode(d.memberCode));
+        $("scanList").appendChild(b);
+      });
+    });
+  } catch (e) { console.warn(e); }
+
+  /* カメラ読み取り */
+  let stream = null, rafId = null;
+  const canvas = document.createElement("canvas");
+  function stopScan(){
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    if (stream){ stream.getTracks().forEach((t) => t.stop()); stream = null; }
+    $("cam").classList.remove("on");
+    $("btnStop").classList.add("hidden");
+    $("btnScan").classList.remove("hidden");
+  }
+  function tick(){
+    const v = $("cam");
+    if (v.readyState === v.HAVE_ENOUGH_DATA){
+      canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(v, 0, 0);
+      try {
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const found = window.jsQR ? jsQR(img.data, img.width, img.height) : null;
+        if (found && found.data){
+          stopScan();
+          lookupByCode(found.data);
+          return;
+        }
+      } catch (e) {}
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  $("btnScan").addEventListener("click", async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const v = $("cam");
+      v.srcObject = stream;
+      await v.play();
+      v.classList.add("on");
+      $("btnScan").classList.add("hidden");
+      $("btnStop").classList.remove("hidden");
+      setStatus("QRコードをカメラに向けてください。");
+      tick();
+    } catch (e) {
+      setStatus("カメラを起動できませんでした。ブラウザの許可をご確認いただくか、会員コードを手入力してください。");
+    }
+  });
+  $("btnStop").addEventListener("click", stopScan);
+  $("btnLookup").addEventListener("click", () => lookupByCode($("codeInput").value));
+  $("codeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") lookupByCode($("codeInput").value); });
+</script>
+</body>
+</html>
