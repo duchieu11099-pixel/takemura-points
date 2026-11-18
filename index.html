@@ -352,8 +352,9 @@
         color: var(--gold);
         border: 2px dashed var(--gold); border-radius: 14px; padding: 16px 10px;
         margin-bottom: 18px; background: var(--card-warm);
-        transform: rotate(180deg);
+        transition: transform 0.9s ease-in-out;
       }
+      .sheet .big-benefit.flipped { transform: rotate(180deg); }
       .sheet .btn-primary { margin-bottom: 10px; }
       .toast {
         position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(16px);
@@ -705,16 +706,22 @@
 
         /* ---------- モーダル ---------- */
         var modalAction = null;
+        var flipTimer = null;
         function openSheet(title, desc, benefit, okLabel, action) {
           $("sheetTitle").textContent = title;
           $("sheetDesc").textContent = desc;
           var benefitEl = $("sheetBenefit");
-          if (benefit) { benefitEl.textContent = benefit; benefitEl.hidden = false; } else { benefitEl.hidden = true; }
+          if (flipTimer) { clearTimeout(flipTimer); flipTimer = null; }
+          benefitEl.classList.remove("flipped");
+          if (benefit) {
+            benefitEl.textContent = benefit; benefitEl.hidden = false;
+            flipTimer = setTimeout(function () { benefitEl.classList.add("flipped"); }, 650);
+          } else { benefitEl.hidden = true; }
           $("sheetOk").textContent = okLabel;
           modalAction = action;
           $("overlay").classList.add("show");
         }
-        function closeSheet() { $("overlay").classList.remove("show"); modalAction = null; }
+        function closeSheet() { $("overlay").classList.remove("show"); modalAction = null; if (flipTimer) { clearTimeout(flipTimer); flipTimer = null; } $("sheetBenefit").classList.remove("flipped"); }
         $("sheetCancel").addEventListener("click", closeSheet);
         $("overlay").addEventListener("click", function (e) { if (e.target === this) closeSheet(); });
         $("sheetOk").addEventListener("click", function () {
