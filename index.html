@@ -288,11 +288,11 @@
       }
       .reward.gift .cost { color: #8a5f08; background: var(--gold-soft); }
       .reward .r-foot .btn-primary, .reward .r-foot .btn-ghost { flex: 1; width: auto; padding: 11px 10px; font-size: 14.5px; }
-      .coupon-code {
+      .coupon-benefit {
         margin-top: 12px; border: 1.5px dashed var(--gold); border-radius: 12px;
-        padding: 10px 12px; text-align: center;
-        font-weight: 900; letter-spacing: 0.14em; font-size: 17px;
-        background: var(--card); font-variant-numeric: tabular-nums;
+        padding: 12px; text-align: center;
+        font-weight: 900; letter-spacing: 0.02em; font-size: 17.5px; line-height: 1.5;
+        color: var(--gold); background: var(--card);
       }
 
       /* ---------- 履歴 ---------- */
@@ -347,10 +347,11 @@
       @keyframes up { from { transform: translateY(36px); opacity: 0; } to { transform: none; opacity: 1; } }
       .sheet h3 { font-family: "Zen Old Mincho", serif; font-size: 19px; font-weight: 900; margin: 0 0 6px; }
       .sheet p { color: var(--ink-soft); font-size: 13.5px; margin: 0 0 16px; }
-      .sheet .big-code {
-        font-size: 30px; font-weight: 900; letter-spacing: 0.16em;
-        border: 2px dashed var(--gold); border-radius: 14px; padding: 14px 8px;
-        margin-bottom: 18px; font-variant-numeric: tabular-nums; background: var(--card-warm);
+      .sheet .big-benefit {
+        font-size: 25px; font-weight: 900; letter-spacing: 0.02em; line-height: 1.5;
+        color: var(--gold);
+        border: 2px dashed var(--gold); border-radius: 14px; padding: 16px 10px;
+        margin-bottom: 18px; background: var(--card-warm);
       }
       .sheet .btn-primary { margin-bottom: 10px; }
       .toast {
@@ -508,7 +509,7 @@
       <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
         <h3 id="sheetTitle"></h3>
         <p id="sheetDesc"></p>
-        <div class="big-code" id="sheetCode" hidden></div>
+        <div class="big-benefit" id="sheetBenefit" hidden></div>
         <button class="btn-primary" id="sheetOk" type="button"></button>
         <button class="btn-ghost" id="sheetCancel" type="button">閉じる</button>
       </div>
@@ -522,31 +523,31 @@
         var REWARDS = [
           {
             id: "gift", cost: 0, gift: true,
-            title: "初回ログイン特典",
+            title: "初回ログイン特典", benefit: "トッピング1品無料 または 大盛り無料",
             desc: "トッピング1品無料 または 大盛り無料。お好きな方をお選びいただけます（お一人様1回限り）。",
             icon: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none"><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9Z" fill="#c08a1d"/><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H20a1.5 1.5 0 0 1 0 3H3.5A.5.5 0 0 1 3 8.5v-1Z" fill="#c08a1d" opacity=".7"/><path d="M12 6v15" stroke="#fdf3df" stroke-width="2"/><path d="M12 6c-1.8 0-4-.6-4-2.2C8 2.4 9.3 2 10.2 2.5 11.6 3.2 12 6 12 6Zm0 0c1.8 0 4-.6 4-2.2 0-1.4-1.3-1.8-2.2-1.3C12.4 3.2 12 6 12 6Z" fill="#c08a1d"/></svg>'
           },
           {
             id: "r3", cost: 3,
-            title: "トッピング1品 無料",
+            title: "トッピング1品 無料", benefit: "トッピング1品 無料",
             desc: "お好きなトッピングをおひとつ無料で追加できます。",
             icon: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="#9c2b1e" stroke-width="2"/><path d="M9.2 9.6c1.4-1 3.2 1 4.7.2M8.6 13.4c1.8.8 3.4-1.2 5.2-.3M10 16.2c1-.5 2.2-.5 3.2.1" stroke="#c08a1d" stroke-width="1.7" stroke-linecap="round"/><circle cx="15.4" cy="8.4" r="1.6" fill="#e2703a"/></svg>'
           },
           {
             id: "r5", cost: 5,
-            title: "丼もの 1品 無料",
+            title: "丼もの 1品 無料", benefit: "丼もの 1品 無料",
             desc: "お好きな丼ものを一品、無料でご提供します。",
             icon: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none"><path d="M3.5 11h17c0 4.4-3.8 8-8.5 8s-8.5-3.6-8.5-8Z" fill="#9c2b1e"/><path d="M5.5 11c1-2.6 3.4-4 6.5-4s5.5 1.4 6.5 4" fill="#f3dfae"/><circle cx="9.5" cy="8.6" r="1.1" fill="#e2703a"/><circle cx="13.8" cy="7.8" r="1" fill="#2e7d46"/></svg>'
           },
           {
             id: "r8", cost: 8,
-            title: "中華そば または 鳥家系ラーメン 1杯無料",
+            title: "中華そば または 鳥家系ラーメン 1杯無料", benefit: "中華そば／鳥家系ラーメン 1杯無料",
             desc: "中華そば／鳥家系ラーメンのどちらか1杯を無料でご提供します。",
             icon: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none"><path d="M3.5 11h17c0 4.4-3.8 8-8.5 8s-8.5-3.6-8.5-8Z" fill="#9c2b1e"/><path d="M4 11c2.7-1.2 5.3 1 8 0s5.3 1.2 8 0" stroke="#c08a1d" stroke-width="1.8" stroke-linecap="round"/><path d="M8.5 7.5c0-1.2 1-1.3 1-2.5M12.5 7.5c0-1.2 1-1.3 1-2.5M16.5 7.5c0-1.2 1-1.3 1-2.5" stroke="#75664f" stroke-width="1.6" stroke-linecap="round"/></svg>'
           },
           {
             id: "r10", cost: 10,
-            title: "お好きなラーメン どれでも1杯無料",
+            title: "お好きなラーメン どれでも1杯無料", benefit: "お好きなラーメン 1杯無料",
             desc: "メニューの全ラーメンの中から、お好きな一杯を無料でご提供します。いちばんお得な特典です。",
             icon: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none"><path d="M3.5 12.5h17c0 4-3.8 7.5-8.5 7.5s-8.5-3.5-8.5-7.5Z" fill="#9c2b1e"/><path d="M4 12.5c2.7-1.2 5.3 1 8 0s5.3 1.2 8 0" stroke="#c08a1d" stroke-width="1.8" stroke-linecap="round"/><path d="M17.8 3.2l1.5-1.4M19.6 5l1.9-.6M19.8 8.2l1.9.7M17.6 9.8l1.3 1.6" stroke="#e2703a" stroke-width="1.7" stroke-linecap="round"/><circle cx="16" cy="6.6" r="1.5" fill="#e2703a"/></svg>'
           }
@@ -671,11 +672,11 @@
             if (!r.gift && c && !c.used) badge = '<span class="badge issued">クーポン発行済み</span>';
             if (!r.gift && c && c.used) badge = '<span class="badge">使用済み</span>';
             var cost = r.gift ? "初回特典" : r.cost + " pt";
-            var code = (c && !c.used) ? '<div class="coupon-code">' + c.code + "</div>" : "";
+            var benefit = (c && !c.used) ? '<div class="coupon-benefit">' + r.benefit + "</div>" : "";
             html += '<article class="' + cls + '">' + badge +
               '<div class="r-head"><div class="r-ic">' + r.icon + '</div>' +
               "<div><h3>" + r.title + '</h3><p class="r-desc">' + r.desc + "</p></div></div>" +
-              code +
+              benefit +
               '<div class="r-foot"><span class="cost">' + cost + "</span>" + rewardButton(r) + "</div></article>";
           });
           $("rewardList").innerHTML = html;
@@ -703,11 +704,11 @@
 
         /* ---------- モーダル ---------- */
         var modalAction = null;
-        function openSheet(title, desc, code, okLabel, action) {
+        function openSheet(title, desc, benefit, okLabel, action) {
           $("sheetTitle").textContent = title;
           $("sheetDesc").textContent = desc;
-          var codeEl = $("sheetCode");
-          if (code) { codeEl.textContent = code; codeEl.hidden = false; } else { codeEl.hidden = true; }
+          var benefitEl = $("sheetBenefit");
+          if (benefit) { benefitEl.textContent = benefit; benefitEl.hidden = false; } else { benefitEl.hidden = true; }
           $("sheetOk").textContent = okLabel;
           modalAction = action;
           $("overlay").classList.add("show");
@@ -757,9 +758,8 @@
           if (btn.getAttribute("data-act") === "exchange") {
             openSheet("ポイント交換", "「" + r.title + "」を " + r.cost + " pt で交換しますか？", null, "交換する", function () { doExchange(r.id); });
           } else {
-            var c = state.coupons[r.id];
-            var code = c ? c.code : (state.coupons[r.id] = { code: makeCode(), used: false }).code;
-            openSheet(r.title, "この画面をスタッフにお見せください。確認後、その場で特典をご提供します。", code, "スタッフ確認済み・使う", function () { doUse(r.id); });
+            if (!state.coupons[r.id]) state.coupons[r.id] = { code: makeCode(), used: false };
+            openSheet(r.title, "この画面をスタッフにお見せください。確認後、その場で特典をご提供します。", r.benefit, "スタッフ確認済み・使う", function () { doUse(r.id); });
           }
         });
 
