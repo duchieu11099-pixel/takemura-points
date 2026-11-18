@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
       :root {
         --bg: #f6e2d6;
@@ -782,6 +783,7 @@
         }
 
         $("btnLogin").addEventListener("click", function () {
+          if (window.__LIFF_ON && window.liff && !liff.isInClient() && !liff.isLoggedIn()) { try { liff.login(); } catch (e) {} return; }
           loginView.hidden = true;
           appView.hidden = false;
           tabbar.classList.add("show");
@@ -797,6 +799,7 @@
           window.scrollTo(0, 0);
         });
         $("btnLogout").addEventListener("click", function () {
+          if (window.__LIFF_ON && window.liff && liff.isLoggedIn()) { try { liff.logout(); } catch (e) {} location.reload(); return; }
           appView.hidden = true;
           tabbar.classList.remove("show");
           loginView.hidden = false;
@@ -847,6 +850,42 @@
             }
           });
         };
+
+        /* ---------- LINEログイン（LIFF）: LIFF_ID を入れると有効になる ---------- */
+        var LIFF_ID = "2012655656-DMdlaPgO";
+        function enterApp() { if (!loginView.hidden) $("btnLogin").click(); }
+        function switchToLineUser(lineUserId) {
+          if (!lineUserId) { enterApp(); return; }
+          var newUid = "L" + lineUserId;
+          if (newUid === uid) { enterApp(); return; }
+          uid = newUid;
+          try { localStorage.setItem(UID_KEY, uid); } catch (e) {}
+          MEMBER_CODE = memberCodeFromUid(uid);
+          $("memberNoHead").textContent = MEMBER_CODE;
+          $("memberNoQr").textContent = MEMBER_CODE;
+          if (qrMade) { qrMade = false; $("qrBox").innerHTML = ""; if (!appView.hidden) makeQR(); }
+          if (!window.CloudLoad) { enterApp(); return; }
+          window.CloudLoad(uid).then(function (d) {
+            if (d) {
+              applyState(d);
+              try { localStorage.setItem("takemura_state_" + uid, JSON.stringify(snapshot())); } catch (e) {}
+              renderAll();
+            } else {
+              saveCloud();
+            }
+            enterApp();
+          }).catch(function () { enterApp(); });
+        }
+        if (LIFF_ID && window.liff) {
+          window.__LIFF_ON = true;
+          try {
+            liff.init({ liffId: LIFF_ID }).then(function () {
+              if (liff.isLoggedIn()) {
+                liff.getProfile().then(function (p) { switchToLineUser(p.userId); }).catch(function () {});
+              }
+            }).catch(function (e) { console.warn("LIFF init failed", e); });
+          } catch (e) { console.warn("LIFF unavailable", e); }
+        }
       })();
     </script>
     <script type="module">
