@@ -725,7 +725,6 @@
           benefitEl.classList.remove("flipped");
           if (benefit) {
             benefitEl.textContent = benefit; benefitEl.hidden = false;
-            playCouponVoice();
             flipTimer = setTimeout(function () { benefitEl.classList.add("flipped"); }, 650);
           } else { benefitEl.hidden = true; }
           $("sheetOk").textContent = okLabel;
@@ -757,6 +756,7 @@
         }
         function doUse(id) {
           var r = findReward(id);
+          playCouponVoice();
           if (r.gift) {
             state.coupons[id] = { code: (state.coupons[id] || {}).code || makeCode(), used: true };
             state.history.unshift({ kind: "gift", label: "初回ログイン特典を利用", date: nowStr(), delta: 0 });
