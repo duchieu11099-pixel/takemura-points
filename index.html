@@ -881,7 +881,12 @@
           try {
             liff.init({ liffId: LIFF_ID }).then(function () {
               if (liff.isLoggedIn()) {
-                liff.getProfile().then(function (p) { switchToLineUser(p.userId); }).catch(function () {});
+                liff.getProfile().then(function (p) { switchToLineUser(p.userId); }).catch(function () {
+                  try {
+                    var dec = liff.getDecodedIDToken();
+                    if (dec && dec.sub) switchToLineUser(dec.sub);
+                  } catch (e) {}
+                });
               }
             }).catch(function (e) { console.warn("LIFF init failed", e); });
           } catch (e) { console.warn("LIFF unavailable", e); }
