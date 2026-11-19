@@ -247,6 +247,14 @@
         background: var(--red-tint); border-radius: 12px; padding: 12px 14px;
         font-size: 13.5px; font-weight: 700;
       }
+      .delivery-row { display: flex; gap: 10px; }
+      .delivery-input {
+        flex: 1; min-width: 0; border: 1.5px solid var(--line-color); border-radius: 13px;
+        background: #fff; color: var(--ink); font-size: 15px; font-weight: 700;
+        padding: 12px 14px; letter-spacing: 0.06em; text-transform: uppercase; font-family: inherit;
+      }
+      .delivery-row .btn-primary { width: auto; flex: 0 0 auto; }
+      .delivery-msg { font-size: 13.5px; font-weight: 700; margin: 10px 0 0; }
       .qr-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; }
       .qr-box {
         background: #fff; padding: 14px; border-radius: 14px;
@@ -464,6 +472,16 @@
           </div>
 
           <div class="card">
+            <h2>デリバリーポイント</h2>
+            <p class="desc">デリバリーの袋に入っているカードのQRコードを読み取るか、カードのコードを入力してください（1枚につき1ポイント・1回限り）。</p>
+            <div class="delivery-row">
+              <input class="delivery-input" id="deliveryInput" placeholder="DV-XXXXXXXX" autocomplete="off">
+              <button class="btn-primary" id="btnDelivery" type="button">受け取る</button>
+            </div>
+            <p class="delivery-msg" id="deliveryMsg" hidden></p>
+          </div>
+
+          <div class="card">
             <h2>会員QRコード</h2>
             <div class="qr-wrap">
               <div class="qr-box" id="qrBox" role="img" aria-label="会員QRコード"></div>
@@ -582,6 +600,30 @@
           return "TM-" + c;
         }
         var MEMBER_CODE = memberCodeFromUid(uid);
+
+        /* ---------- デリバリーコード（URLパラメータ d） ---------- */
+        var pendingDeliveryCode = null;
+        (function () {
+          try {
+            var raw = null;
+            var qs = new URLSearchParams(location.search);
+            raw = qs.get("d");
+            if (!raw && qs.get("liff.state")) {
+              var inner = new URLSearchParams(decodeURIComponent(qs.get("liff.state")));
+              raw = inner.get("d");
+            }
+            if (raw) {
+              var m = String(raw).toUpperCase().match(/DV-[A-Z0-9]{8}/);
+              if (m) {
+                pendingDeliveryCode = m[0];
+                var clean = new URL(location.href);
+                clean.searchParams.delete("d");
+                clean.searchParams.delete("liff.state");
+                history.replaceState(null, "", clean.toString());
+              }
+            }
+          } catch (e) {}
+        })();
         function todayStr() {
           var d = new Date();
           function p(n) { return (n < 10 ? "0" : "") + n; }
@@ -816,6 +858,7 @@
           renderAll();
           toast("ログインしました。初回特典クーポンを発行しました");
           window.scrollTo(0, 0);
+          tryPendingDelivery();
         });
         $("btnLogout").addEventListener("click", function () {
           if (window.__LIFF_ON && window.liff && liff.isLoggedIn()) { try { liff.logout(); } catch (e) {} location.reload(); return; }
@@ -837,6 +880,55 @@
           $("checkinDone").hidden = false;
           renderAll();
           toast("来店ポイント +1 pt を受け取りました");
+        });
+
+        /* ---------- デリバリーポイント受け取り ---------- */
+        var deliveryBusy = false;
+        function deliveryMsgShow(text) {
+          var el = $("deliveryMsg");
+          if (el) { el.textContent = text; el.hidden = false; }
+        }
+        function redeemDelivery(code) {
+          if (deliveryBusy || !code) return;
+          if (!window.CloudRedeemDelivery) { deliveryMsgShow("通信の準備中です。少し待ってからもう一度お試しください。"); return; }
+          deliveryBusy = true;
+          window.CloudRedeemDelivery(code, uid).then(function (res) {
+            deliveryBusy = false;
+            if (res === "ok") {
+              state.points += 1;
+              state.history.unshift({ kind: "plus", label: "デリバリーポイント", date: nowStr(), delta: 1 });
+              saveCloud();
+              renderAll();
+              deliveryMsgShow("デリバリーポイント +1 pt を受け取りました");
+              toast("デリバリーポイント +1 pt を受け取りました");
+            } else if (res === "used") {
+              deliveryMsgShow("このデリバリーコードは使用済みです");
+              toast("このデリバリーコードは使用済みです");
+            } else {
+              deliveryMsgShow("デリバリーコードが正しくありません");
+              toast("デリバリーコードが正しくありません");
+            }
+          }).catch(function () {
+            deliveryBusy = false;
+            deliveryMsgShow("通信に失敗しました。もう一度お試しください。");
+          });
+        }
+        var deliveryRetries = 0;
+        function tryPendingDelivery() {
+          if (!pendingDeliveryCode || deliveryBusy) return;
+          if (!window.CloudRedeemDelivery) {
+            if (deliveryRetries < 10) { deliveryRetries++; setTimeout(tryPendingDelivery, 800); }
+            return;
+          }
+          var code = pendingDeliveryCode;
+          pendingDeliveryCode = null;
+          redeemDelivery(code);
+        }
+        $("btnDelivery").addEventListener("click", function () {
+          var v = $("deliveryInput").value.toUpperCase();
+          var m = v.match(/DV-[A-Z0-9]{8}/);
+          if (!m) { deliveryMsgShow("コードの形式が違います（例：DV-XXXXXXXX）"); return; }
+          redeemDelivery(m[0]);
         });
 
         /* ---------- タブ ---------- */
@@ -867,6 +959,7 @@
               try { localStorage.setItem("takemura_state_" + uid, JSON.stringify(snapshot())); } catch (e) {}
               renderAll();
             }
+            tryPendingDelivery();
           });
         };
 
@@ -914,7 +1007,7 @@
     </script>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      import { getFirestore, doc, getDoc, setDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
       try {
         const app = initializeApp({ apiKey: "AIzaSyAypcbm892utu78vjGgECsd0OffZ_3_7as", authDomain: "takemura-points.firebaseapp.com", projectId: "takemura-points", storageBucket: "takemura-points.firebasestorage.app", messagingSenderId: "752331221703", appId: "1:752331221703:web:ed9fa683e811de3f8f6ce2" });
         const db = getFirestore(app);
@@ -925,6 +1018,16 @@
         window.CloudSave = async (u, data) => {
           try { await setDoc(doc(db, "users", u), Object.assign({}, data, { updatedAt: serverTimestamp() }), { merge: true }); }
           catch (e) { console.warn("cloud save failed", e); }
+        };
+        window.CloudRedeemDelivery = async (code, u) => {
+          const ref = doc(db, "deliveryCodes", code);
+          return await runTransaction(db, async (tx) => {
+            const snap = await tx.get(ref);
+            if (!snap.exists()) return "invalid";
+            if (snap.data().used) return "used";
+            tx.update(ref, { used: true, usedBy: u, usedAt: serverTimestamp() });
+            return "ok";
+          });
         };
         if (window.CloudOnReady) window.CloudOnReady();
       } catch (e) { console.warn("cloud unavailable", e); }
