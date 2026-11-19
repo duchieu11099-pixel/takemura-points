@@ -333,10 +333,10 @@
     for (let i = 0; i < 8; i++) s += DCHARS[a[i] % DCHARS.length];
     return "DV-" + s;
   }
-  async function refreshDCount(){
+  async function refreshDCount(prefix){
     try {
       const c = await getCountFromServer(query(collection(db, "deliveryCodes"), where("used", "==", false)));
-      $("dStatus").textContent = "未使用コード：" + c.data().count + " 件";
+      $("dStatus").textContent = (prefix ? prefix + " " : "") + "未使用コード：" + c.data().count + " 件";
     } catch (e) { /* 件数を取れない場合は表示を変えない */ }
   }
   function renderSheet(codes){
@@ -384,8 +384,7 @@
       }
       renderSheet(codes);
       $("btnPrint").disabled = false;
-      $("dStatus").textContent = codes.length + " 件のコードを発行しました。「印刷する」ボタンから印刷してください。";
-      refreshDCount();
+      await refreshDCount(codes.length + " 件のコードを発行しました。「印刷する」ボタンから印刷してください。");
     } catch (e) {
       console.error(e);
       $("dStatus").textContent = "発行に失敗しました。通信環境をご確認ください。";
