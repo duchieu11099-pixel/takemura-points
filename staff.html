@@ -246,11 +246,12 @@
         return;
       }
       $("scanList").innerHTML = "";
+      const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       snap.forEach((s) => {
         const d = s.data();
         const b = document.createElement("button");
         b.className = "scan-row"; b.type = "button";
-        b.innerHTML = '<span class="code">' + (d.memberCode || "—") + '</span>' +
+        b.innerHTML = '<span class="code">' + (d.memberCode || "—") + (d.lineName ? '<br><span style="font-size:12px;font-weight:400">' + escHtml(d.lineName) + '</span>' : '') + '</span>' +
           '<span class="meta"><b>' + (d.points || 0) + ' pt</b><br>' + (d.lastEarnKind || "") + " " + fmtTime(d.lastEarnAt) + '</span>';
         b.addEventListener("click", () => lookupByCode(d.memberCode));
         $("scanList").appendChild(b);

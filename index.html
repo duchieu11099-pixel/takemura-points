@@ -604,6 +604,7 @@
           return "TM-" + c;
         }
         var MEMBER_CODE = memberCodeFromUid(uid);
+        var LINE_NAME = "";
 
         /* ---------- デリバリーコード（URLパラメータ d） ---------- */
         var pendingDeliveryCode = null;
@@ -637,7 +638,7 @@
           return {
             points: state.points, coupons: state.coupons, giftIssued: state.giftIssued,
             history: state.history.slice(0, 60), lastEarnDate: state.lastEarnDate || "",
-            memberCode: MEMBER_CODE
+            memberCode: MEMBER_CODE, lineName: LINE_NAME || ""
           };
         }
         function saveCloud() {
@@ -646,6 +647,7 @@
         }
         function applyState(d) {
           if (!d) return;
+          if (d.lineName) LINE_NAME = d.lineName;
           state.points = d.points || 0;
           state.coupons = d.coupons || {};
           state.giftIssued = !!d.giftIssued;
@@ -1010,10 +1012,16 @@
           try {
             liff.init({ liffId: LIFF_ID }).then(function () {
               if (liff.isLoggedIn()) {
-                liff.getProfile().then(function (p) { switchToLineUser(p.userId); }).catch(function () {
+                liff.getProfile().then(function (p) {
+                  if (p.displayName) {
+                    LINE_NAME = p.displayName;
+                    if (window.CloudSave) window.CloudSave("L" + p.userId, { lineName: p.displayName });
+                  }
+                  switchToLineUser(p.userId);
+                }).catch(function () {
                   try {
                     var dec = liff.getDecodedIDToken();
-                    if (dec && dec.sub) switchToLineUser(dec.sub);
+                    if (dec && dec.sub) { if (dec.name) LINE_NAME = dec.name; switchToLineUser(dec.sub); }
                   } catch (e) {}
                 });
               }
