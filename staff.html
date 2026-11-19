@@ -73,6 +73,7 @@
   .dcard-shop span{color:#9c2b1e;font-size:10px;font-weight:800}
   .dcard-big{font-size:14.5px;font-weight:800;margin-top:1px}
   .dcard-note{font-size:10px;color:#5c4c33}
+  .dcard-exp{font-size:10.5px;font-weight:800;color:#9c2b1e;margin-top:1px}
   .dcard-code{font-size:9.5px;letter-spacing:.1em;color:#75664f;margin-top:1px}
   @media print{
     body{background:#fff;max-width:none;margin:0;padding:0}
@@ -339,7 +340,8 @@
           '<div class="dcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
           '<div class="dcard-main"><div class="dcard-shop">中華そば 竹むら <span>デリバリー専用</span></div>' +
           '<div class="dcard-big">デリバリーポイント +1</div>' +
-          '<div class="dcard-note">LINEで読み取ってください ※1回限り有効' + (expLabel ? "<br>" + expLabel : "") + '</div>' +
+          '<div class="dcard-note">LINEで読み取ってください ※1回限り有効</div>' +
+          (expLabel ? '<div class="dcard-exp">' + expLabel + "</div>" : "") +
           '<div class="dcard-code">' + code + "</div></div>";
         page.appendChild(card);
       });
