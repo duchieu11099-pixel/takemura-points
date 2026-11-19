@@ -876,6 +876,7 @@
           state.history.unshift({ kind: "plus", label: "来店ポイント", date: nowStr(), delta: 1 });
           state.lastEarnDate = todayStr();
           saveCloud();
+          if (window.CloudMarkEarn) window.CloudMarkEarn(uid, "来店");
           $("checkinArea").hidden = true;
           $("checkinDone").hidden = false;
           renderAll();
@@ -906,6 +907,7 @@
               $("checkinArea").hidden = true;
               $("checkinDone").hidden = false;
               saveCloud();
+              if (window.CloudMarkEarn) window.CloudMarkEarn(uid, "デリバリー");
               renderAll();
               deliveryMsgShow("デリバリーポイント +1 pt を受け取りました");
               toast("デリバリーポイント +1 pt を受け取りました");
@@ -1026,6 +1028,10 @@
         window.CloudSave = async (u, data) => {
           try { await setDoc(doc(db, "users", u), Object.assign({}, data, { updatedAt: serverTimestamp() }), { merge: true }); }
           catch (e) { console.warn("cloud save failed", e); }
+        };
+        window.CloudMarkEarn = async (u, kind) => {
+          try { await setDoc(doc(db, "users", u), { lastEarnAt: serverTimestamp(), lastEarnKind: kind }, { merge: true }); }
+          catch (e) { console.warn("cloud mark earn failed", e); }
         };
         window.CloudRedeemDelivery = async (code, u) => {
           const ref = doc(db, "deliveryCodes", code);

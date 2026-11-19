@@ -136,8 +136,8 @@
   </div>
 
   <div class="card">
-    <h2>読み取り履歴（リアルタイム）</h2>
-    <div id="scanList"><p class="empty">まだ読み取りがありません</p></div>
+    <h2>ポイント取得履歴（リアルタイム）</h2>
+    <div id="scanList"><p class="empty">まだポイント取得がありません</p></div>
   </div>
   </div>
 
@@ -221,12 +221,12 @@
     }
   }
 
-  /* リアルタイム：読み取り履歴 */
+  /* リアルタイム：ポイント取得履歴 */
   try {
-    const rq = query(collection(db, "users"), orderBy("lastScannedAt", "desc"), limit(15));
+    const rq = query(collection(db, "users"), orderBy("lastEarnAt", "desc"), limit(15));
     onSnapshot(rq, (snap) => {
       if (snap.empty){
-        $("scanList").innerHTML = '<p class="empty">まだ読み取りがありません</p>';
+        $("scanList").innerHTML = '<p class="empty">まだポイント取得がありません</p>';
         return;
       }
       $("scanList").innerHTML = "";
@@ -235,7 +235,7 @@
         const b = document.createElement("button");
         b.className = "scan-row"; b.type = "button";
         b.innerHTML = '<span class="code">' + (d.memberCode || "—") + '</span>' +
-          '<span class="meta"><b>' + (d.points || 0) + ' pt</b><br>' + fmtTime(d.lastScannedAt) + '</span>';
+          '<span class="meta"><b>' + (d.points || 0) + ' pt</b><br>' + (d.lastEarnKind || "") + " " + fmtTime(d.lastEarnAt) + '</span>';
         b.addEventListener("click", () => lookupByCode(d.memberCode));
         $("scanList").appendChild(b);
       });
