@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>竹むら スタッフ用｜会員照会</title>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
   :root{
     --bg:#17100A; --card:#2A1C10; --ink:#F1E5CB; --ink-soft:#B79F78;
@@ -56,9 +57,46 @@
   .scan-row .meta b{color:var(--gold);font-size:13px}
   .empty{font-size:13px;color:var(--ink-soft);padding:8px 0}
   .hidden{display:none}
+  select{
+    flex:1;background:#1E1409;border:1px solid var(--line);border-radius:10px;color:var(--ink);
+    padding:12px 14px;font-size:15px;font-family:inherit;
+  }
+  #lockScreen{padding-top:8vh}
+  /* ---- デリバリーカード印刷シート ---- */
+  #printSheet{display:none}
+  #printSheet.show{display:block;margin-top:14px}
+  .dpage{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .dcard{background:#fff;color:#241708;border:1.5px solid #241708;border-radius:8px;padding:8px 10px}
+  .dcard-head{display:flex;justify-content:space-between;align-items:center;background:#241708;color:#F1E5CB;border-radius:5px;padding:4px 9px;font-weight:800;font-size:13px;letter-spacing:.04em}
+  .dcard-head span{color:#D9A441;font-size:11px;white-space:nowrap;margin-left:8px}
+  .dcard-body{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .dcard-qr{width:82px;height:82px;flex:0 0 82px}
+  .dcard-qr svg{width:100%;height:100%;display:block}
+  .dcard-txt{font-size:12.5px;line-height:1.55}
+  .dcard-txt .big{font-size:16.5px;font-weight:800}
+  .dcard-code{margin-top:5px;font-size:11px;letter-spacing:.12em;color:#75664f;text-align:right}
+  @media print{
+    body{background:#fff;max-width:none;margin:0;padding:0}
+    body>*:not(#printSheet){display:none!important}
+    #printSheet{display:block!important;margin:0}
+    .dpage{gap:6mm;margin:0 0 6mm;page-break-after:always}
+    .dpage:last-child{page-break-after:auto;margin-bottom:0}
+    .dcard{border-color:#000}
+  }
 </style>
 </head>
 <body>
+  <div id="lockScreen">
+    <h1>中華そば 竹むら｜スタッフ用</h1>
+    <p class="sub">スタッフ専用ページです。暗証番号を入力してください。</p>
+    <div class="row" style="margin-top:14px">
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="暗証番号">
+      <button class="btn" id="btnUnlock" type="button" style="flex:0 0 96px">開く</button>
+    </div>
+    <p class="status" id="pinStatus"></p>
+  </div>
+
+  <div id="staffMain" class="hidden">
   <h1>中華そば 竹むら｜スタッフ用 会員照会</h1>
   <p class="sub">お客様の会員QRコードを読み取ると、その場でポイントと履歴が表示されます。このページのURLはお客様に共有しないでください。</p>
 
@@ -91,15 +129,36 @@
   </div>
 
   <div class="card">
+    <h2>デリバリーコード発行・印刷</h2>
+    <p class="sub">デリバリーの袋に入れる「1回限り」のポイントカード用QRコードを発行します。来店用QRコードとは別物です。発行して印刷し、切り取って注文ごとに1枚入れてください。読み取られると自動で使用済みになり、同じコードは2回使えません。</p>
+    <div class="row" style="margin-top:10px">
+      <select id="dCount">
+        <option value="10">10枚</option>
+        <option value="50" selected>50枚</option>
+        <option value="100">100枚</option>
+        <option value="200">200枚</option>
+      </select>
+      <button class="btn" id="btnGen" type="button" style="flex:0 0 128px">コードを発行</button>
+    </div>
+    <p class="status" id="dStatus">未使用コード：—</p>
+    <div class="row" style="margin-top:10px">
+      <button class="btn sub" id="btnPrint" type="button" disabled>印刷する</button>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>読み取り履歴（リアルタイム）</h2>
     <div id="scanList"><p class="empty">まだ読み取りがありません</p></div>
   </div>
+  </div>
+
+  <div id="printSheet"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, query, where, orderBy, limit, getDocs,
-    doc, updateDoc, onSnapshot, serverTimestamp
+    doc, updateDoc, onSnapshot, serverTimestamp, writeBatch, getCountFromServer
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const app = initializeApp({ apiKey: "AIzaSyAypcbm892utu78vjGgECsd0OffZ_3_7as", authDomain: "takemura-points.firebaseapp.com", projectId: "takemura-points", storageBucket: "takemura-points.firebasestorage.app", messagingSenderId: "752331221703", appId: "1:752331221703:web:ed9fa683e811de3f8f6ce2" });
@@ -241,6 +300,99 @@
   $("btnStop").addEventListener("click", stopScan);
   $("btnLookup").addEventListener("click", () => lookupByCode($("codeInput").value));
   $("codeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") lookupByCode($("codeInput").value); });
+
+  /* ---------- 暗証番号ロック ---------- */
+  const PIN_HASH = "63a29401aa7ba39e26705e0737243b6a14f70b7189bd1bbd0bf216964a7bd2e4";
+  async function sha256Hex(s){
+    const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+  }
+  function unlockStaff(){
+    $("lockScreen").classList.add("hidden");
+    $("staffMain").classList.remove("hidden");
+    try { sessionStorage.setItem("tm_staff_ok", "1"); } catch (e) {}
+    refreshDCount();
+  }
+  try { if (sessionStorage.getItem("tm_staff_ok") === "1") unlockStaff(); } catch (e) {}
+  $("btnUnlock").addEventListener("click", async () => {
+    const v = $("pinInput").value.trim();
+    if (!v) return;
+    const h = await sha256Hex(v);
+    if (h === PIN_HASH) unlockStaff();
+    else $("pinStatus").textContent = "暗証番号が違います。";
+  });
+  $("pinInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btnUnlock").click(); });
+
+  /* ---------- デリバリーコード発行・印刷 ---------- */
+  const LIFF_URL = "https://liff.line.me/2012655656-DMdlaPgO";
+  const DCHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  function newDeliveryCode(){
+    let s = "";
+    const a = new Uint32Array(8);
+    crypto.getRandomValues(a);
+    for (let i = 0; i < 8; i++) s += DCHARS[a[i] % DCHARS.length];
+    return "DV-" + s;
+  }
+  async function refreshDCount(){
+    try {
+      const c = await getCountFromServer(query(collection(db, "deliveryCodes"), where("used", "==", false)));
+      $("dStatus").textContent = "未使用コード：" + c.data().count + " 件";
+    } catch (e) { /* 件数を取れない場合は表示を変えない */ }
+  }
+  function renderSheet(codes){
+    const sheet = $("printSheet");
+    sheet.innerHTML = "";
+    for (let p = 0; p < codes.length; p += 10) {
+      const page = document.createElement("div");
+      page.className = "dpage";
+      codes.slice(p, p + 10).forEach((code) => {
+        const qr = qrcode(0, "M");
+        qr.addData(LIFF_URL + "?d=" + code);
+        qr.make();
+        const card = document.createElement("div");
+        card.className = "dcard";
+        card.innerHTML =
+          '<div class="dcard-head">中華そば 竹むら<span>デリバリー専用</span></div>' +
+          '<div class="dcard-body"><div class="dcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
+          '<div class="dcard-txt"><span class="big">デリバリーポイント</span><br>LINEで読み取ると<br><b>+1ポイント</b> プレゼント<br>※このカードは1回限り有効です</div></div>' +
+          '<div class="dcard-code">' + code + "</div>";
+        page.appendChild(card);
+      });
+      sheet.appendChild(page);
+    }
+    sheet.classList.add("show");
+  }
+  $("btnGen").addEventListener("click", async () => {
+    const n = parseInt($("dCount").value, 10) || 50;
+    const btn = $("btnGen");
+    btn.disabled = true;
+    $("dStatus").textContent = "発行中です…";
+    try {
+      const codes = [];
+      const seen = new Set();
+      while (codes.length < n) {
+        const c = newDeliveryCode();
+        if (!seen.has(c)) { seen.add(c); codes.push(c); }
+      }
+      const batchId = "B" + Date.now().toString(36).toUpperCase();
+      for (let i = 0; i < codes.length; i += 100) {
+        const wb = writeBatch(db);
+        codes.slice(i, i + 100).forEach((code) => {
+          wb.set(doc(db, "deliveryCodes", code), { used: false, batch: batchId, createdAt: serverTimestamp() });
+        });
+        await wb.commit();
+      }
+      renderSheet(codes);
+      $("btnPrint").disabled = false;
+      $("dStatus").textContent = codes.length + " 件のコードを発行しました。「印刷する」ボタンから印刷してください。";
+      refreshDCount();
+    } catch (e) {
+      console.error(e);
+      $("dStatus").textContent = "発行に失敗しました。通信環境をご確認ください。";
+    }
+    btn.disabled = false;
+  });
+  $("btnPrint").addEventListener("click", () => window.print());
 </script>
 </body>
 </html>
