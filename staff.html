@@ -65,15 +65,15 @@
   #printSheet{display:none}
   #printSheet.show{display:block;margin-top:14px}
   .dpage{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-  .dcard{background:#fff;color:#241708;border:1.5px solid #241708;border-radius:8px;padding:8px 10px}
-  .dcard-head{display:flex;justify-content:space-between;align-items:center;background:#241708;color:#F1E5CB;border-radius:5px;padding:4px 9px;font-weight:800;font-size:13px;letter-spacing:.04em}
-  .dcard-head span{color:#D9A441;font-size:11px;white-space:nowrap;margin-left:8px}
-  .dcard-body{display:flex;gap:10px;align-items:center;margin-top:8px}
-  .dcard-qr{width:82px;height:82px;flex:0 0 82px}
+  .dcard{background:#fff;color:#241708;border:1.5px solid #241708;border-radius:8px;padding:7px 8px}
+  .dcard-head{display:flex;justify-content:space-between;align-items:center;gap:6px;background:#241708;color:#F1E5CB;border-radius:5px;padding:3px 8px;font-weight:800;font-size:12px;letter-spacing:.03em;white-space:nowrap;overflow:hidden}
+  .dcard-head span{color:#D9A441;font-size:10.5px;white-space:nowrap}
+  .dcard-body{display:flex;flex-direction:column;gap:5px;align-items:center;text-align:center;margin-top:6px}
+  .dcard-qr{width:62px;height:62px}
   .dcard-qr svg{width:100%;height:100%;display:block}
-  .dcard-txt{font-size:12.5px;line-height:1.55}
-  .dcard-txt .big{font-size:16.5px;font-weight:800}
-  .dcard-code{margin-top:5px;font-size:11px;letter-spacing:.12em;color:#75664f;text-align:right}
+  .dcard-txt{font-size:12px;line-height:1.5}
+  .dcard-txt .big{font-size:15px;font-weight:800}
+  .dcard-code{margin-top:4px;font-size:10.5px;letter-spacing:.12em;color:#75664f;text-align:center}
   @media print{
     body{background:#fff;max-width:none;margin:0;padding:0}
     body>*:not(#printSheet){display:none!important}
@@ -323,7 +323,7 @@
         card.innerHTML =
           '<div class="dcard-head">中華そば 竹むら<span>デリバリー専用</span></div>' +
           '<div class="dcard-body"><div class="dcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
-          '<div class="dcard-txt"><span class="big">デリバリーポイント</span><br>LINEで読み取ると<br><b>+1ポイント</b> プレゼント<br>※このカードは1回限り有効です</div></div>' +
+          '<div class="dcard-txt"><span class="big">デリバリーポイント</span><br>LINEで読み取ると <b>+1ポイント</b><br>※1回限り有効</div></div>' +
           '<div class="dcard-code">' + code + "</div>";
         page.appendChild(card);
       });
