@@ -79,6 +79,23 @@
   .dcard-note{font-size:10px;color:#5c4c33}
   .dcard-exp{font-size:10.5px;font-weight:800;color:#9c2b1e;margin-top:1px}
   .dcard-code{font-size:9.5px;letter-spacing:.1em;color:#75664f;margin-top:1px}
+  /* ---- ガイド付きシート（A4に4枚） ---- */
+  .gpage{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:14px}
+  .gcard{background:#fff;color:#241708;border:1px dashed #8a7a5f;border-radius:6px;padding:12px 14px;text-align:center;line-height:1.55}
+  .gcard-shop{font-size:13px;font-weight:800}
+  .gcard-big{font-size:19px;font-weight:800;color:#9c2b1e;margin:2px 0 4px}
+  .gcard-qr{width:34mm;height:34mm;margin:2px auto}
+  .gcard-qr svg{width:100%;height:100%;display:block}
+  .gcard-cap{font-size:11px;color:#5c4c33}
+  .gcard-steps{text-align:left;font-size:12.5px;font-weight:700;margin:7px auto 0;max-width:300px}
+  .gcard-steps div{margin:2px 0}
+  .gcard-steps b{display:inline-block;background:#9c2b1e;color:#fff;border-radius:50%;width:17px;height:17px;line-height:17px;text-align:center;font-size:11px;margin-right:6px;vertical-align:1px}
+  .gcard-note{font-size:10.5px;color:#5c4c33;margin-top:5px}
+  .gcard-exp{font-size:12.5px;font-weight:800;color:#9c2b1e;margin-top:4px}
+  .gcard-manual{font-size:10.5px;color:#5c4c33;margin-top:4px}
+  .gcard-code{font-size:13px;font-weight:800;letter-spacing:.08em}
+  .gcard-rewards{font-size:10.5px;color:#5c4c33;border-top:1px solid #e5dccb;margin-top:8px;padding-top:6px;line-height:1.7;text-align:left}
+  .gcard-rewards b{color:#9c2b1e}
   @media print{
     body{background:#fff;max-width:none;margin:0;padding:0}
     body>*:not(#printSheet){display:none!important}
@@ -86,6 +103,9 @@
     .dpage{grid-template-columns:repeat(3,1fr);gap:4mm;margin:0 0 4mm;page-break-after:always}
     .dpage:last-child{page-break-after:auto;margin-bottom:0}
     .dcard{border-color:#000}
+    .gpage{grid-template-columns:repeat(2,1fr);gap:4mm;margin:0 0 4mm;page-break-after:always}
+    .gpage:last-child{page-break-after:auto;margin-bottom:0}
+    .gcard{border-color:#000;min-height:128mm}
   }
 </style>
 </head>
@@ -125,7 +145,7 @@
 
   <div class="card">
     <h2>デリバリーコード発行・印刷</h2>
-    <p class="sub">デリバリーの袋に入れる「1回限り」のポイントカード用QRコードを発行します。来店用QRコードとは別物です。発行して印刷し、切り取って注文ごとに1枚入れてください。読み取られると自動で使用済みになり、同じコードは2回使えません。</p>
+    <p class="sub">デリバリーの袋に入れる「1回限り」のポイントカード用QRコードを発行します。来店用QRコードとは別物です。発行して印刷し、切り取って注文ごとに1枚入れてください。読み取られると自動で使用済みになり、同じコードは2回使えません。「ガイド付き」を選ぶと、使い方の説明とQRが1枚になった大きなカードがA4に4枚印刷されます。</p>
     <div class="row" style="margin-top:10px">
       <select id="dCount">
         <option value="1">1枚（テスト用）</option>
@@ -144,6 +164,13 @@
         <option value="30" selected>発行から30日</option>
         <option value="90">発行から90日</option>
         <option value="180">発行から180日</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label for="dFormat" style="font-size:13px;flex:0 0 64px">用紙</label>
+      <select id="dFormat">
+        <option value="card" selected>カードのみ（A4に24枚）</option>
+        <option value="guide">ガイド付き（A4に4枚）</option>
       </select>
     </div>
     <p class="status" id="dStatus">未使用コード：—</p>
@@ -363,22 +390,42 @@
       const p = (x) => (x < 10 ? "0" : "") + x;
       expLabel = "有効期限：" + expDate.getFullYear() + "/" + p(expDate.getMonth() + 1) + "/" + p(expDate.getDate()) + "まで";
     }
-    for (let p = 0; p < codes.length; p += 24) {
+    const guide = $("dFormat") && $("dFormat").value === "guide";
+    const per = guide ? 4 : 24;
+    for (let p = 0; p < codes.length; p += per) {
       const page = document.createElement("div");
-      page.className = "dpage";
-      codes.slice(p, p + 24).forEach((code) => {
+      page.className = guide ? "gpage" : "dpage";
+      codes.slice(p, p + per).forEach((code) => {
         const qr = qrcode(0, "M");
         qr.addData(LIFF_URL + "?d=" + code);
         qr.make();
         const card = document.createElement("div");
-        card.className = "dcard";
-        card.innerHTML =
-          '<div class="dcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
-          '<div class="dcard-main"><div class="dcard-shop">中華そば 竹むら <span>デリバリー専用</span></div>' +
-          '<div class="dcard-big">デリバリーポイント +1</div>' +
-          '<div class="dcard-note">LINEで読み取ってください ※1回限り有効</div>' +
-          (expLabel ? '<div class="dcard-exp">' + expLabel + "</div>" : "") +
-          '<div class="dcard-code">' + code + "</div></div>";
+        if (guide) {
+          card.className = "gcard";
+          card.innerHTML =
+            '<div class="gcard-shop">中華そば 竹むら</div>' +
+            '<div class="gcard-big">このQRで 1ポイント GET!</div>' +
+            '<div class="gcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
+            '<div class="gcard-cap">スマホで読み取ってください</div>' +
+            '<div class="gcard-steps">' +
+            '<div><b>1</b>QRコードを読み取る</div>' +
+            '<div><b>2</b>LINEが開いたら、そのままログイン</div>' +
+            '<div><b>3</b>自動で +1ポイント!</div></div>' +
+            '<div class="gcard-note">※このカードは1回限り有効です<br>※ポイントは1日1ポイントまで（ご来店分と合わせて）</div>' +
+            (expLabel ? '<div class="gcard-exp">' + expLabel + "</div>" : "") +
+            '<div class="gcard-manual">読み取れない時は、アプリでこのコードを入力</div>' +
+            '<div class="gcard-code">' + code + "</div>" +
+            '<div class="gcard-rewards"><b>初回登録特典：トッピング or 大盛り 無料</b><br>3pt トッピング無料 ・ 5pt 丼もの1品無料<br>8pt ラーメン1杯無料 ・ 10pt 好きなラーメン1杯無料</div>';
+        } else {
+          card.className = "dcard";
+          card.innerHTML =
+            '<div class="dcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
+            '<div class="dcard-main"><div class="dcard-shop">中華そば 竹むら <span>デリバリー専用</span></div>' +
+            '<div class="dcard-big">デリバリーポイント +1</div>' +
+            '<div class="dcard-note">LINEで読み取ってください ※1回限り有効</div>' +
+            (expLabel ? '<div class="dcard-exp">' + expLabel + "</div>" : "") +
+            '<div class="dcard-code">' + code + "</div></div>";
+        }
         page.appendChild(card);
       });
       sheet.appendChild(page);
