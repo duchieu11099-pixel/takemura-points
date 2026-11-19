@@ -891,12 +891,20 @@
         function redeemDelivery(code) {
           if (deliveryBusy || !code) return;
           if (!window.CloudRedeemDelivery) { deliveryMsgShow("通信の準備中です。少し待ってからもう一度お試しください。"); return; }
+          if (state.lastEarnDate === todayStr()) {
+            deliveryMsgShow("本日のポイントはすでに受け取り済みです。このコードは明日以降にお使いください（コードは使われていません）");
+            return;
+          }
           deliveryBusy = true;
           window.CloudRedeemDelivery(code, uid).then(function (res) {
             deliveryBusy = false;
             if (res === "ok") {
               state.points += 1;
               state.history.unshift({ kind: "plus", label: "デリバリーポイント", date: nowStr(), delta: 1 });
+              state.checkedIn = true;
+              state.lastEarnDate = todayStr();
+              $("checkinArea").hidden = true;
+              $("checkinDone").hidden = false;
               saveCloud();
               renderAll();
               deliveryMsgShow("デリバリーポイント +1 pt を受け取りました");
