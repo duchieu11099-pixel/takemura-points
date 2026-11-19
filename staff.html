@@ -129,6 +129,16 @@
       </select>
       <button class="btn" id="btnGen" type="button" style="flex:0 0 128px">コードを発行</button>
     </div>
+    <div class="row" style="margin-top:8px">
+      <label for="dExpiry" style="font-size:13px;flex:0 0 64px">有効期限</label>
+      <select id="dExpiry">
+        <option value="0">無期限</option>
+        <option value="7">発行から7日</option>
+        <option value="30" selected>発行から30日</option>
+        <option value="90">発行から90日</option>
+        <option value="180">発行から180日</option>
+      </select>
+    </div>
     <p class="status" id="dStatus">未使用コード：—</p>
     <div class="row" style="margin-top:10px">
       <button class="btn sub" id="btnPrint" type="button" disabled>印刷する</button>
@@ -308,9 +318,14 @@
       $("dStatus").textContent = (prefix ? prefix + " " : "") + "未使用コード：" + c.data().count + " 件";
     } catch (e) { /* 件数を取れない場合は表示を変えない */ }
   }
-  function renderSheet(codes){
+  function renderSheet(codes, expDate){
     const sheet = $("printSheet");
     sheet.innerHTML = "";
+    let expLabel = "";
+    if (expDate) {
+      const p = (x) => (x < 10 ? "0" : "") + x;
+      expLabel = "有効期限：" + expDate.getFullYear() + "/" + p(expDate.getMonth() + 1) + "/" + p(expDate.getDate()) + "まで";
+    }
     for (let p = 0; p < codes.length; p += 24) {
       const page = document.createElement("div");
       page.className = "dpage";
@@ -324,7 +339,7 @@
           '<div class="dcard-qr">' + qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true }) + "</div>" +
           '<div class="dcard-main"><div class="dcard-shop">中華そば 竹むら <span>デリバリー専用</span></div>' +
           '<div class="dcard-big">デリバリーポイント +1</div>' +
-          '<div class="dcard-note">LINEで読み取ってください ※1回限り有効</div>' +
+          '<div class="dcard-note">LINEで読み取ってください ※1回限り有効' + (expLabel ? "<br>" + expLabel : "") + '</div>' +
           '<div class="dcard-code">' + code + "</div></div>";
         page.appendChild(card);
       });
@@ -345,14 +360,18 @@
         if (!seen.has(c)) { seen.add(c); codes.push(c); }
       }
       const batchId = "B" + Date.now().toString(36).toUpperCase();
+      const expDays = parseInt($("dExpiry").value, 10) || 0;
+      const expDate = expDays > 0 ? new Date(Date.now() + expDays * 86400000) : null;
       for (let i = 0; i < codes.length; i += 100) {
         const wb = writeBatch(db);
         codes.slice(i, i + 100).forEach((code) => {
-          wb.set(doc(db, "deliveryCodes", code), { used: false, batch: batchId, createdAt: serverTimestamp() });
+          const data = { used: false, batch: batchId, createdAt: serverTimestamp() };
+          if (expDate) data.expiresAt = expDate;
+          wb.set(doc(db, "deliveryCodes", code), data);
         });
         await wb.commit();
       }
-      renderSheet(codes);
+      renderSheet(codes, expDate);
       $("btnPrint").disabled = false;
       await refreshDCount(codes.length + " 件のコードを発行しました。「印刷する」ボタンから印刷してください。");
     } catch (e) {

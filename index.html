@@ -914,6 +914,9 @@
             } else if (res === "used") {
               deliveryMsgShow("このデリバリーコードは使用済みです");
               toast("このデリバリーコードは使用済みです");
+            } else if (res === "expired") {
+              deliveryMsgShow("このデリバリーコードは有効期限が切れています");
+              toast("このデリバリーコードは有効期限が切れています");
             } else {
               deliveryMsgShow("デリバリーコードが正しくありません");
               toast("デリバリーコードが正しくありません");
@@ -1039,6 +1042,8 @@
             const snap = await tx.get(ref);
             if (!snap.exists()) return "invalid";
             if (snap.data().used) return "used";
+            const exp = snap.data().expiresAt;
+            if (exp && exp.toMillis && exp.toMillis() < Date.now()) return "expired";
             tx.update(ref, { used: true, usedBy: u, usedAt: serverTimestamp() });
             return "ok";
           });
