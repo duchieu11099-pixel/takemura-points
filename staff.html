@@ -61,7 +61,6 @@
     flex:1;background:#1E1409;border:1px solid var(--line);border-radius:10px;color:var(--ink);
     padding:12px 14px;font-size:15px;font-family:inherit;
   }
-  #lockScreen{padding-top:8vh}
   /* ---- デリバリーカード印刷シート ---- */
   #printSheet{display:none}
   #printSheet.show{display:block;margin-top:14px}
@@ -86,17 +85,7 @@
 </style>
 </head>
 <body>
-  <div id="lockScreen">
-    <h1>中華そば 竹むら｜スタッフ用</h1>
-    <p class="sub">スタッフ専用ページです。暗証番号を入力してください。</p>
-    <div class="row" style="margin-top:14px">
-      <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="暗証番号">
-      <button class="btn" id="btnUnlock" type="button" style="flex:0 0 96px">開く</button>
-    </div>
-    <p class="status" id="pinStatus"></p>
-  </div>
-
-  <div id="staffMain" class="hidden">
+  <div id="staffMain">
   <h1>中華そば 竹むら｜スタッフ用 会員照会</h1>
   <p class="sub">お客様の会員QRコードを読み取ると、その場でポイントと履歴が表示されます。このページのURLはお客様に共有しないでください。</p>
 
@@ -301,27 +290,7 @@
   $("btnLookup").addEventListener("click", () => lookupByCode($("codeInput").value));
   $("codeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") lookupByCode($("codeInput").value); });
 
-  /* ---------- 暗証番号ロック ---------- */
-  const PIN_HASH = "63a29401aa7ba39e26705e0737243b6a14f70b7189bd1bbd0bf216964a7bd2e4";
-  async function sha256Hex(s){
-    const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-    return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
-  }
-  function unlockStaff(){
-    $("lockScreen").classList.add("hidden");
-    $("staffMain").classList.remove("hidden");
-    try { sessionStorage.setItem("tm_staff_ok", "1"); } catch (e) {}
-    refreshDCount();
-  }
-  try { if (sessionStorage.getItem("tm_staff_ok") === "1") unlockStaff(); } catch (e) {}
-  $("btnUnlock").addEventListener("click", async () => {
-    const v = $("pinInput").value.trim();
-    if (!v) return;
-    const h = await sha256Hex(v);
-    if (h === PIN_HASH) unlockStaff();
-    else $("pinStatus").textContent = "暗証番号が違います。";
-  });
-  $("pinInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btnUnlock").click(); });
+  refreshDCount();
 
   /* ---------- デリバリーコード発行・印刷 ---------- */
   const LIFF_URL = "https://liff.line.me/2012655656-DMdlaPgO";
