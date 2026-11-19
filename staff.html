@@ -237,24 +237,52 @@
     }
   }
 
-  /* リアルタイム：ポイント取得履歴 */
+  /* リアルタイム：ポイント取得履歴（全件・日別・来店/デリバリー区別） */
   try {
-    const rq = query(collection(db, "users"), orderBy("lastEarnAt", "desc"), limit(15));
-    onSnapshot(rq, (snap) => {
-      if (snap.empty){
+    onSnapshot(collection(db, "users"), (snap) => {
+      const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const events = [];
+      snap.forEach((s) => {
+        const d = s.data();
+        const hist = Array.isArray(d.history) ? d.history : [];
+        hist.forEach((h) => {
+          if (!h || h.kind !== "plus") return;
+          let src = "";
+          if (h.label === "来店ポイント") src = "来店";
+          else if (h.label === "デリバリーポイント") src = "デリバリー";
+          else return;
+          events.push({ date: String(h.date || ""), code: d.memberCode || "—", name: d.lineName || "", src: src, delta: h.delta || 1 });
+        });
+      });
+      if (!events.length){
         $("scanList").innerHTML = '<p class="empty">まだポイント取得がありません</p>';
         return;
       }
-      $("scanList").innerHTML = "";
-      const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-      snap.forEach((s) => {
-        const d = s.data();
+      events.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+      const box = $("scanList");
+      box.innerHTML = "";
+      let curDay = "";
+      events.forEach((ev) => {
+        const parts = ev.date.split(" ");
+        const day = parts[0] || "";
+        const time = parts[1] || "";
+        if (day !== curDay) {
+          curDay = day;
+          let cStore = 0, cDel = 0;
+          events.forEach((e2) => {
+            if ((e2.date.split(" ")[0] || "") === day) { if (e2.src === "来店") cStore++; else cDel++; }
+          });
+          const hd = document.createElement("p");
+          hd.style.cssText = "margin:14px 0 6px;font-weight:900;font-size:14px;";
+          hd.textContent = day + "（来店 " + cStore + " ・ デリバリー " + cDel + "）";
+          box.appendChild(hd);
+        }
         const b = document.createElement("button");
         b.className = "scan-row"; b.type = "button";
-        b.innerHTML = '<span class="code">' + (d.memberCode || "—") + (d.lineName ? '<br><span style="font-size:12px;font-weight:400">' + escHtml(d.lineName) + '</span>' : '') + '</span>' +
-          '<span class="meta"><b>' + (d.points || 0) + ' pt</b><br>' + (d.lastEarnKind || "") + " " + fmtTime(d.lastEarnAt) + '</span>';
-        b.addEventListener("click", () => lookupByCode(d.memberCode));
-        $("scanList").appendChild(b);
+        b.innerHTML = '<span class="code">' + escHtml(ev.code) + (ev.name ? '<br><span style="font-size:12px;font-weight:400">' + escHtml(ev.name) + '</span>' : '') + '</span>' +
+          '<span class="meta"><b>+' + ev.delta + ' pt</b><br>' + ev.src + " " + time + '</span>';
+        b.addEventListener("click", () => lookupByCode(ev.code));
+        box.appendChild(b);
       });
     });
   } catch (e) { console.warn(e); }

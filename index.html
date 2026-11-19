@@ -975,6 +975,7 @@
           window.CloudLoad(uid).then(function (d) {
             if (d) {
               applyState(d);
+              if (LINE_NAME && d.lineName !== LINE_NAME && window.CloudSave) window.CloudSave(uid, { lineName: LINE_NAME });
               try { localStorage.setItem("takemura_state_" + uid, JSON.stringify(snapshot())); } catch (e) {}
               renderAll();
             }
@@ -999,6 +1000,7 @@
           window.CloudLoad(uid).then(function (d) {
             if (d) {
               applyState(d);
+              if (LINE_NAME && d.lineName !== LINE_NAME && window.CloudSave) window.CloudSave(uid, { lineName: LINE_NAME });
               try { localStorage.setItem("takemura_state_" + uid, JSON.stringify(snapshot())); } catch (e) {}
               renderAll();
             } else {
