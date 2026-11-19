@@ -113,6 +113,7 @@
     <div class="cust-points"><span id="cPoints">0</span> <small>pt</small></div>
     <div style="margin-top:8px">
       <div class="kv"><span>会員コード</span><b id="cCode">—</b></div>
+      <div class="kv"><span>LINE名</span><b id="cName">—</b></div>
       <div class="kv"><span>初回ログイン特典</span><b id="cGift">—</b></div>
       <div class="kv"><span>最終の来店ポイント</span><b id="cLastEarn">—</b></div>
     </div>
@@ -191,6 +192,7 @@
     $("custCard").classList.remove("hidden");
     $("cPoints").textContent = d.points || 0;
     $("cCode").textContent = d.memberCode || "—";
+    $("cName").textContent = d.lineName || "—";
     const gift = (d.coupons || {}).gift;
     $("cGift").innerHTML = !d.giftIssued
       ? '<span class="tag avail">未発行</span>'

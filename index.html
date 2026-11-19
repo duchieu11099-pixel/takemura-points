@@ -985,7 +985,19 @@
 
         /* ---------- LINEログイン（LIFF）: LIFF_ID を入れると有効になる ---------- */
         var LIFF_ID = "2012655656-DMdlaPgO";
-        function enterApp() { if (!loginView.hidden) $("btnLogin").click(); }
+        function enterApp() { if (!loginView.hidden) $("btnLogin").click(); fetchLineNameRetry(); }
+        function fetchLineNameRetry() {
+          if (LINE_NAME || !window.liff) return;
+          try {
+            if (!liff.isLoggedIn()) return;
+            liff.getProfile().then(function (p) {
+              if (p && p.displayName) {
+                LINE_NAME = p.displayName;
+                if (window.CloudSave && uid && uid.charAt(0) === "L") window.CloudSave(uid, { lineName: LINE_NAME });
+              }
+            }).catch(function () {});
+          } catch (e) {}
+        }
         function switchToLineUser(lineUserId) {
           if (!lineUserId) { enterApp(); return; }
           var newUid = "L" + lineUserId;
@@ -1023,7 +1035,7 @@
                 }).catch(function () {
                   try {
                     var dec = liff.getDecodedIDToken();
-                    if (dec && dec.sub) { if (dec.name) LINE_NAME = dec.name; switchToLineUser(dec.sub); }
+                    if (dec && dec.sub) { if (dec.name) LINE_NAME = dec.name; switchToLineUser(dec.sub); setTimeout(fetchLineNameRetry, 2000); }
                   } catch (e) {}
                 });
               }
