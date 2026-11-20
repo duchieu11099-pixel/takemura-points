@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-title" content="竹むらスタッフ">
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
   :root{
     --bg:#17100A; --card:#2A1C10; --ink:#F1E5CB; --ink-soft:#B79F78;
@@ -175,6 +176,7 @@
     <p class="status" id="dStatus">未使用コード：—</p>
     <div class="row" style="margin-top:10px">
       <button class="btn sub" id="btnPrint" type="button" disabled>印刷する</button>
+      <button class="btn" id="btnPdf" type="button" disabled>PDFで保存（iPhone用）</button>
     </div>
   </div>
 
@@ -389,6 +391,7 @@
       const p = (x) => (x < 10 ? "0" : "") + x;
       expLabel = "有効期限：" + expDate.getFullYear() + "/" + p(expDate.getMonth() + 1) + "/" + p(expDate.getDate()) + "まで";
     }
+    window.__lastSheet = { codes: codes.slice(), expLabel: expLabel };
     for (let p = 0; p < codes.length; p += 4) {
       const page = document.createElement("div");
       page.className = "gpage";
@@ -444,7 +447,8 @@
       }
       renderSheet(codes, expDate);
       $("btnPrint").disabled = false;
-      await refreshDCount(codes.length + " 件のコードを発行しました。「印刷する」ボタンから印刷してください。");
+      $("btnPdf").disabled = false;
+      await refreshDCount(codes.length + " 件のコードを発行しました。「印刷する」または「PDFで保存」ボタンから印刷してください。");
     } catch (e) {
       console.error(e);
       $("dStatus").textContent = "発行に失敗しました。通信環境をご確認ください。";
@@ -452,6 +456,112 @@
     btn.disabled = false;
   });
   $("btnPrint").addEventListener("click", () => window.print());
+
+  /* ---------- PDFで保存（印刷ボタンが効かないiPhone等向け） ---------- */
+  function svgToImage(svgText){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText);
+    });
+  }
+  async function buildSheetPdf(){
+    const data = window.__lastSheet;
+    if (!data || !data.codes.length) return;
+    if (!window.jspdf) { $("dStatus").textContent = "PDFライブラリを読み込めませんでした。通信環境をご確認ください。"; return; }
+    const btn = $("btnPdf");
+    btn.disabled = true;
+    $("dStatus").textContent = "PDFを作成中です…";
+    try {
+      const S = 200 / 25.4;                       // px per mm (200dpi)
+      const PW = Math.round(210 * S), PH = Math.round(297 * S);
+      const MG = 10 * S, GAP = 4 * S;
+      const CW = (PW - 2 * MG - GAP) / 2, CH = (PH - 2 * MG - GAP) / 2;
+      const INK = "#241708", RED = "#9c2b1e", GREY = "#5c4c33", STRIP = "#e5dccb";
+      const FONT = "'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif";
+      const FP = (bold, pt) => (bold ? "bold " : "") + (pt * 200 / 72).toFixed(1) + "px " + FONT;
+      const qrImgs = {};
+      for (const code of data.codes) {
+        const qr = qrcode(0, "M");
+        qr.addData(LIFF_URL + "?d=" + code);
+        qr.make();
+        let svg = qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true });
+        svg = svg.replace('width="100%"', 'width="480"').replace('height="100%"', 'height="480"');
+        qrImgs[code] = await svgToImage(svg);
+      }
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+      for (let p = 0; p < data.codes.length; p += 4) {
+        if (p > 0) pdf.addPage();
+        const cv = document.createElement("canvas");
+        cv.width = PW; cv.height = PH;
+        const ctx = cv.getContext("2d");
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, PW, PH);
+        ctx.textBaseline = "top";
+        data.codes.slice(p, p + 4).forEach((code, i) => {
+          const x0 = MG + (i % 2) * (CW + GAP), y0 = MG + Math.floor(i / 2) * (CH + GAP);
+          ctx.strokeStyle = "#000000"; ctx.lineWidth = 2; ctx.setLineDash([10, 6]);
+          ctx.strokeRect(x0, y0, CW, CH);
+          ctx.setLineDash([]);
+          const cx = x0 + CW / 2;
+          let y = y0 + 9 * S;
+          const center = (s, fnt, color, dy) => {
+            ctx.font = fnt; ctx.fillStyle = color; ctx.textAlign = "center";
+            ctx.fillText(s, cx, y);
+            y += parseFloat(fnt.match(/([\d.]+)px/)[1]) * 1.22 + dy;
+          };
+          center("中華そば 竹むら", FP(true, 13), INK, 1 * S);
+          center("このQRで 1ポイント GET!", FP(true, 19), RED, 2 * S);
+          const QS = 31 * S;
+          ctx.drawImage(qrImgs[code], cx - QS / 2, y, QS, QS);
+          y += QS + 1.5 * S;
+          center("スマホで読み取ってください", FP(false, 11), GREY, 3 * S);
+          const steps = ["QRコードを読み取る", "LINEが開いたら、そのままログイン", "自動で +1ポイント!"];
+          ctx.font = FP(true, 12.5);
+          const bw = Math.max(...steps.map((s) => ctx.measureText(s).width)) + 5.2 * S + 3 * S;
+          let sx = cx - bw / 2;
+          steps.forEach((s, idx) => {
+            const lh = 12.5 * 200 / 72 * 1.22, r = 2.6 * S, cy = y + lh / 2;
+            ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(sx + r, cy, r, 0, Math.PI * 2); ctx.fill();
+            ctx.font = FP(false, 10.5); ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
+            ctx.fillText(String(idx + 1), sx + r, cy - 10.5 * 200 / 72 * 0.62);
+            ctx.font = FP(true, 12.5); ctx.fillStyle = INK; ctx.textAlign = "left";
+            ctx.fillText(s, sx + 2 * r + 3 * S, y);
+            y += lh + 0.4 * S;
+          });
+          y += 1.5 * S;
+          ["※このカードは1回限り有効です", "※ポイントは1日1ポイントまで（ご来店分と合わせて）", "※ポイントのご利用は、ご来店時のみとなります"]
+            .forEach((s) => center(s, FP(false, 10.5), GREY, 0.6 * S));
+          y += 1 * S;
+          if (data.expLabel) center(data.expLabel, FP(true, 12.5), RED, 2 * S);
+          center("読み取れない時は、アプリでこのコードを入力", FP(false, 10.5), GREY, 0.8 * S);
+          ctx.font = FP(true, 14); ctx.fillStyle = INK; ctx.textAlign = "left";
+          const LS = 5;
+          const totalW = [...code].reduce((a, ch) => a + ctx.measureText(ch).width, 0) + LS * (code.length - 1);
+          let lx = cx - totalW / 2;
+          for (const ch of code) { ctx.fillText(ch, lx, y); lx += ctx.measureText(ch).width + LS; }
+          y += 14 * 200 / 72 * 1.22 + 3.5 * S;
+          ctx.strokeStyle = STRIP; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x0 + 6 * S, y); ctx.lineTo(x0 + CW - 6 * S, y); ctx.stroke();
+          y += 2.5 * S;
+          const rx = x0 + 6 * S;
+          const rew = (s, fnt, color, dy) => { ctx.font = fnt; ctx.fillStyle = color; ctx.textAlign = "left"; ctx.fillText(s, rx, y); y += parseFloat(fnt.match(/([\d.]+)px/)[1]) * 1.22 + dy; };
+          rew("初回登録特典：トッピング or 大盛り 無料", FP(true, 9.8), RED, 0.8 * S);
+          rew("3pt トッピング無料 ・ 5pt 丼もの1品無料", FP(false, 9.8), GREY, 0.8 * S);
+          rew("8pt ラーメン1杯無料 ・ 10pt 好きなラーメン1杯無料", FP(false, 9.8), GREY, 0);
+        });
+        pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
+      }
+      pdf.save("takemura-delivery-codes.pdf");
+      $("dStatus").textContent = "PDFを保存しました。ファイルを開いて、共有ボタンから印刷できます。";
+    } catch (e) {
+      console.error(e);
+      $("dStatus").textContent = "PDFの作成に失敗しました。もう一度お試しください。";
+    }
+    btn.disabled = false;
+  }
+  $("btnPdf").addEventListener("click", buildSheetPdf);
 </script>
 </body>
 </html>
