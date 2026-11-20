@@ -178,6 +178,9 @@
       <button class="btn sub" id="btnPrint" type="button" disabled>印刷する</button>
       <button class="btn" id="btnPdf" type="button" disabled>PDFで保存（iPhone用）</button>
     </div>
+    <div class="row" id="pdfLinkRow" style="margin-top:10px;display:none">
+      <a id="pdfOpenLink" href="#" target="_blank" rel="noopener" style="font-size:17px;font-weight:800;color:#9c2b1e">▶ PDFを開く</a>
+    </div>
   </div>
 
   <div class="card">
@@ -426,6 +429,7 @@
     const btn = $("btnGen");
     btn.disabled = true;
     $("dStatus").textContent = "発行中です…";
+    $("pdfLinkRow").style.display = "none";
     try {
       const codes = [];
       const seen = new Set();
@@ -472,6 +476,8 @@
     if (!window.jspdf) { $("dStatus").textContent = "PDFライブラリを読み込めませんでした。通信環境をご確認ください。"; return; }
     const btn = $("btnPdf");
     btn.disabled = true;
+    $("pdfLinkRow").style.display = "none";
+    const win = window.open("", "_blank");
     $("dStatus").textContent = "PDFを作成中です…";
     try {
       const S = 200 / 25.4;                       // px per mm (200dpi)
@@ -553,10 +559,14 @@
         });
         pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
       }
-      pdf.save("takemura-delivery-codes.pdf");
-      $("dStatus").textContent = "PDFを保存しました。ファイルを開いて、共有ボタンから印刷できます。";
+      const pdfUrl = pdf.output("bloburl");
+      $("pdfOpenLink").href = pdfUrl;
+      $("pdfLinkRow").style.display = "";
+      if (win) { try { win.location.href = pdfUrl; } catch (e) { /* ignore */ } }
+      $("dStatus").textContent = "PDFができました。「PDFを開く」を押して、共有ボタンから印刷してください。";
     } catch (e) {
       console.error(e);
+      if (win) { try { win.close(); } catch (e2) { /* ignore */ } }
       $("dStatus").textContent = "PDFの作成に失敗しました。もう一度お試しください。";
     }
     btn.disabled = false;
