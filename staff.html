@@ -97,15 +97,20 @@
   .gcard-rewards{font-size:10.5px;color:#5c4c33;border-top:1px solid #e5dccb;margin-top:8px;padding-top:6px;line-height:1.7;text-align:left}
   .gcard-rewards b{color:#9c2b1e}
   @media print{
+    @page{size:A4;margin:10mm}
     body{background:#fff;max-width:none;margin:0;padding:0}
     body>*:not(#printSheet){display:none!important}
     #printSheet{display:block!important;margin:0}
     .dpage{grid-template-columns:repeat(3,1fr);gap:4mm;margin:0 0 4mm;page-break-after:always}
     .dpage:last-child{page-break-after:auto;margin-bottom:0}
     .dcard{border-color:#000}
-    .gpage{grid-template-columns:repeat(2,1fr);gap:4mm;margin:0 0 4mm;page-break-after:always}
-    .gpage:last-child{page-break-after:auto;margin-bottom:0}
-    .gcard{border-color:#000;min-height:128mm}
+    .gpage{grid-template-columns:repeat(2,1fr);gap:3mm;margin:0;page-break-after:always}
+    .gpage:last-child{page-break-after:auto}
+    .gcard{border-color:#000;min-height:0;padding:8px 10px;line-height:1.45;break-inside:avoid;page-break-inside:avoid}
+    .gcard-qr{width:30mm;height:30mm}
+    .gcard-steps{margin-top:5px}
+    .gcard-note{margin-top:4px}
+    .gcard-rewards{margin-top:6px;padding-top:5px;line-height:1.55}
   }
 </style>
 </head>
