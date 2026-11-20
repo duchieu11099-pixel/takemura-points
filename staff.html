@@ -179,7 +179,7 @@
       <button class="btn" id="btnPdf" type="button" disabled>PDFで保存（iPhone用）</button>
     </div>
     <div class="row" id="pdfLinkRow" style="margin-top:10px;display:none">
-      <a id="pdfOpenLink" href="#" target="_blank" rel="noopener" style="font-size:17px;font-weight:800;color:#9c2b1e">▶ PDFを開く</a>
+      <a id="pdfOpenLink" href="#" target="_blank" rel="noopener" download="takemura-delivery-codes.pdf" style="font-size:17px;font-weight:800;color:#9c2b1e">▶ PDFを開く</a>
     </div>
   </div>
 
@@ -470,6 +470,18 @@
       img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgText);
     });
   }
+  async function makeQrPng(code){
+    const qr = qrcode(0, "M");
+    qr.addData(LIFF_URL + "?d=" + code);
+    qr.make();
+    let svg = qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true });
+    svg = svg.replace('width="100%"', 'width="480"').replace('height="100%"', 'height="480"');
+    const img = await svgToImage(svg);
+    const c = document.createElement("canvas");
+    c.width = 480; c.height = 480;
+    c.getContext("2d").drawImage(img, 0, 0, 480, 480);
+    return c.toDataURL("image/png");
+  }
   async function buildSheetPdf(){
     const data = window.__lastSheet;
     if (!data || !data.codes.length) return;
@@ -480,22 +492,15 @@
     const win = window.open("", "_blank");
     $("dStatus").textContent = "PDFを作成中です…";
     try {
-      const S = 200 / 25.4;                       // px per mm (200dpi)
+      const DPI = 150, S = DPI / 25.4, PXPT = DPI / 72, LH = 1.12;
       const PW = Math.round(210 * S), PH = Math.round(297 * S);
       const MG = 10 * S, GAP = 4 * S;
       const CW = (PW - 2 * MG - GAP) / 2, CH = (PH - 2 * MG - GAP) / 2;
       const INK = "#241708", RED = "#9c2b1e", GREY = "#5c4c33", STRIP = "#e5dccb";
       const FONT = "'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif";
-      const FP = (bold, pt) => (bold ? "bold " : "") + (pt * 200 / 72).toFixed(1) + "px " + FONT;
-      const qrImgs = {};
-      for (const code of data.codes) {
-        const qr = qrcode(0, "M");
-        qr.addData(LIFF_URL + "?d=" + code);
-        qr.make();
-        let svg = qr.createSvgTag({ cellSize: 3, margin: 10, scalable: true });
-        svg = svg.replace('width="100%"', 'width="480"').replace('height="100%"', 'height="480"');
-        qrImgs[code] = await svgToImage(svg);
-      }
+      const FP = (bold, pt) => (bold ? "bold " : "") + (pt * PXPT).toFixed(1) + "px " + FONT;
+      const qrPngs = {};
+      await Promise.all(data.codes.map(async (code) => { qrPngs[code] = await makeQrPng(code); }));
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
       for (let p = 0; p < data.codes.length; p += 4) {
@@ -505,6 +510,7 @@
         const ctx = cv.getContext("2d");
         ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, PW, PH);
         ctx.textBaseline = "top";
+        const qrRects = [];
         data.codes.slice(p, p + 4).forEach((code, i) => {
           const x0 = MG + (i % 2) * (CW + GAP), y0 = MG + Math.floor(i / 2) * (CH + GAP);
           ctx.strokeStyle = "#000000"; ctx.lineWidth = 2; ctx.setLineDash([10, 6]);
@@ -515,30 +521,30 @@
           const center = (s, fnt, color, dy) => {
             ctx.font = fnt; ctx.fillStyle = color; ctx.textAlign = "center";
             ctx.fillText(s, cx, y);
-            y += parseFloat(fnt.match(/([\d.]+)px/)[1]) * 1.22 + dy;
+            y += parseFloat(fnt.match(/([\d.]+)px/)[1]) * LH + dy;
           };
-          center("中華そば 竹むら", FP(true, 13), INK, 1 * S);
-          center("このQRで 1ポイント GET!", FP(true, 19), RED, 2 * S);
+          center("中華そば 竹むら", FP(true, 13), INK, 0.8 * S);
+          center("このQRで 1ポイント GET!", FP(true, 19), RED, 1.5 * S);
           const QS = 31 * S;
-          ctx.drawImage(qrImgs[code], cx - QS / 2, y, QS, QS);
+          qrRects.push({ code: code, x: (cx - QS / 2) / S, y: y / S, size: QS / S });
           y += QS + 1.5 * S;
-          center("スマホで読み取ってください", FP(false, 11), GREY, 3 * S);
+          center("スマホで読み取ってください", FP(false, 11), GREY, 2.5 * S);
           const steps = ["QRコードを読み取る", "LINEが開いたら、そのままログイン", "自動で +1ポイント!"];
           ctx.font = FP(true, 12.5);
           const bw = Math.max(...steps.map((s) => ctx.measureText(s).width)) + 5.2 * S + 3 * S;
           let sx = cx - bw / 2;
           steps.forEach((s, idx) => {
-            const lh = 12.5 * 200 / 72 * 1.22, r = 2.6 * S, cy = y + lh / 2;
+            const lh = 12.5 * PXPT * LH, r = 2.6 * S, cy = y + lh / 2;
             ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(sx + r, cy, r, 0, Math.PI * 2); ctx.fill();
             ctx.font = FP(false, 10.5); ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
-            ctx.fillText(String(idx + 1), sx + r, cy - 10.5 * 200 / 72 * 0.62);
+            ctx.fillText(String(idx + 1), sx + r, cy - 10.5 * PXPT * 0.53);
             ctx.font = FP(true, 12.5); ctx.fillStyle = INK; ctx.textAlign = "left";
             ctx.fillText(s, sx + 2 * r + 3 * S, y);
-            y += lh + 0.4 * S;
+            y += lh + 0.3 * S;
           });
           y += 1.5 * S;
           ["※このカードは1回限り有効です", "※ポイントは1日1ポイントまで（ご来店分と合わせて）", "※ポイントのご利用は、ご来店時のみとなります"]
-            .forEach((s) => center(s, FP(false, 10.5), GREY, 0.6 * S));
+            .forEach((s) => center(s, FP(false, 10.5), GREY, 0.5 * S));
           y += 1 * S;
           if (data.expLabel) center(data.expLabel, FP(true, 12.5), RED, 2 * S);
           center("読み取れない時は、アプリでこのコードを入力", FP(false, 10.5), GREY, 0.8 * S);
@@ -547,17 +553,18 @@
           const totalW = [...code].reduce((a, ch) => a + ctx.measureText(ch).width, 0) + LS * (code.length - 1);
           let lx = cx - totalW / 2;
           for (const ch of code) { ctx.fillText(ch, lx, y); lx += ctx.measureText(ch).width + LS; }
-          y += 14 * 200 / 72 * 1.22 + 3.5 * S;
+          y += 14 * PXPT * LH + 3 * S;
           ctx.strokeStyle = STRIP; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(x0 + 6 * S, y); ctx.lineTo(x0 + CW - 6 * S, y); ctx.stroke();
-          y += 2.5 * S;
+          y += 2.2 * S;
           const rx = x0 + 6 * S;
-          const rew = (s, fnt, color, dy) => { ctx.font = fnt; ctx.fillStyle = color; ctx.textAlign = "left"; ctx.fillText(s, rx, y); y += parseFloat(fnt.match(/([\d.]+)px/)[1]) * 1.22 + dy; };
+          const rew = (s, fnt, color, dy) => { ctx.font = fnt; ctx.fillStyle = color; ctx.textAlign = "left"; ctx.fillText(s, rx, y); y += parseFloat(fnt.match(/([\d.]+)px/)[1]) * LH + dy; };
           rew("初回登録特典：トッピング or 大盛り 無料", FP(true, 9.8), RED, 0.8 * S);
           rew("3pt トッピング無料 ・ 5pt 丼もの1品無料", FP(false, 9.8), GREY, 0.8 * S);
           rew("8pt ラーメン1杯無料 ・ 10pt 好きなラーメン1杯無料", FP(false, 9.8), GREY, 0);
         });
-        pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297);
+        pdf.addImage(cv.toDataURL("image/jpeg", 0.88), "JPEG", 0, 0, 210, 297);
+        qrRects.forEach((r) => pdf.addImage(qrPngs[r.code], "PNG", r.x, r.y, r.size, r.size));
       }
       const pdfUrl = pdf.output("bloburl");
       $("pdfOpenLink").href = pdfUrl;
