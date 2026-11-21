@@ -1073,12 +1073,24 @@
           }
           window.open(FRIEND_URL, "_blank");
         }
+        var friendPollTimer = null;
+        function syncFriendPoll() {
+          var gate = $("friendGate");
+          var need = !!(gate && !gate.hidden);
+          if (need && !friendPollTimer) {
+            friendPollTimer = setInterval(checkFriendship, 3000);
+          } else if (!need && friendPollTimer) {
+            clearInterval(friendPollTimer);
+            friendPollTimer = null;
+          }
+        }
         function checkFriendship() {
           var card = $("friendCard");
           var gate = $("friendGate");
           if (!uid || uid.charAt(0) !== "L" || !window.liff) {
             if (card) card.hidden = true;
             if (gate) gate.hidden = true;
+            syncFriendPoll();
             return;
           }
           try {
@@ -1087,6 +1099,7 @@
                 var isFriend = !!(f && f.friendFlag);
                 if (card) card.hidden = isFriend;
                 if (gate) gate.hidden = isFriend;
+                syncFriendPoll();
                 if (!isFriend) { wasNonFriend = true; return; }
                 if (wasNonFriend) {
                   wasNonFriend = false;
@@ -1099,14 +1112,17 @@
               }).catch(function () {
                 if (card) card.hidden = false;
                 if (gate) gate.hidden = true;
+                syncFriendPoll();
               });
             } else {
               if (card) card.hidden = false;
               if (gate) gate.hidden = true;
+              syncFriendPoll();
             }
           } catch (e) {
             if (card) card.hidden = false;
             if (gate) gate.hidden = true;
+            syncFriendPoll();
           }
         }
         var btnFriendEl = $("btnFriend");
@@ -1114,6 +1130,7 @@
         var btnFriendGateEl = $("btnFriendGate");
         if (btnFriendGateEl) btnFriendGateEl.addEventListener("click", openFriendPage);
         document.addEventListener("visibilitychange", function () { if (!document.hidden) checkFriendship(); });
+        window.addEventListener("focus", function () { checkFriendship(); });
         function fetchLineNameRetry() {
           if (LINE_NAME || !window.liff) return;
           try {
