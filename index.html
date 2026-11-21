@@ -916,16 +916,19 @@
         /* ---------- 来店チェックイン ---------- */
         $("btnCheckin").addEventListener("click", function () {
           if (state.checkedIn) return;
-          state.checkedIn = true;
-          state.points += 1;
-          state.history.unshift({ kind: "plus", label: "来店ポイント", date: nowStr(), delta: 1 });
-          state.lastEarnDate = todayStr();
-          saveCloud();
-          if (window.CloudMarkEarn) window.CloudMarkEarn(uid, "来店");
-          $("checkinArea").hidden = true;
-          $("checkinDone").hidden = false;
-          renderAll();
-          toast("来店ポイント +1 pt を受け取りました");
+          requireFriend(function (ok) {
+            if (!ok || state.checkedIn) return;
+            state.checkedIn = true;
+            state.points += 1;
+            state.history.unshift({ kind: "plus", label: "来店ポイント", date: nowStr(), delta: 1 });
+            state.lastEarnDate = todayStr();
+            saveCloud();
+            if (window.CloudMarkEarn) window.CloudMarkEarn(uid, "来店");
+            $("checkinArea").hidden = true;
+            $("checkinDone").hidden = false;
+            renderAll();
+            toast("来店ポイント +1 pt を受け取りました");
+          });
         });
 
         /* ---------- デリバリーポイント受け取り ---------- */
@@ -937,6 +940,21 @@
         function redeemDelivery(code) {
           if (deliveryBusy || !code) return;
           if (!window.CloudRedeemDelivery) { deliveryMsgShow("通信の準備中です。少し待ってからもう一度お試しください。"); return; }
+          if (state.lastEarnDate === todayStr()) {
+            deliveryMsgShow("本日のポイントはすでに受け取り済みです。このコードは明日以降にお使いください（コードは使われていません）");
+            return;
+          }
+          requireFriend(function (ok) {
+            if (!ok) {
+              deliveryBlockedCode = code;
+              deliveryMsgShow("ポイントを受け取るには、LINEの友だち追加が必要です。追加が終わると自動で受け取ります。");
+              return;
+            }
+            redeemDeliveryGo(code);
+          });
+        }
+        function redeemDeliveryGo(code) {
+          if (deliveryBusy || !code) return;
           if (state.lastEarnDate === todayStr()) {
             deliveryMsgShow("本日のポイントはすでに受け取り済みです。このコードは明日以降にお使いください（コードは使われていません）");
             return;
@@ -1027,6 +1045,28 @@
         function enterApp() { if (!loginView.hidden) $("btnLogin").click(); fetchLineNameRetry(); checkFriendship(); }
         var FRIEND_URL = "https://lin.ee/9l0HeQd";
         var wasNonFriend = false;
+        var deliveryBlockedCode = null;
+        function requireFriend(done) {
+          if (!uid || uid.charAt(0) !== "L" || !window.liff || !liff.getFriendship) { done(true); return; }
+          liff.getFriendship().then(function (f) {
+            var isFriend = !!(f && f.friendFlag);
+            if (!isFriend) {
+              wasNonFriend = true;
+              var gate = $("friendGate");
+              if (gate) gate.hidden = false;
+              var card = $("friendCard");
+              if (card) card.hidden = false;
+              toast("ポイントを受け取るには、LINEの友だち追加が必要です");
+            }
+            done(isFriend);
+          }).catch(function () {
+            wasNonFriend = true;
+            var gate = $("friendGate");
+            if (gate) gate.hidden = false;
+            toast("ポイントを受け取るには、LINEの友だち追加が必要です");
+            done(false);
+          });
+        }
         function openFriendPage() {
           if (window.liff && liff.openWindow) {
             try { liff.openWindow({ url: FRIEND_URL, external: false }); return; } catch (e) {}
@@ -1050,7 +1090,11 @@
                 if (!isFriend) { wasNonFriend = true; return; }
                 if (wasNonFriend) {
                   wasNonFriend = false;
-                  if (!state.checkedIn) $("btnCheckin").click();
+                  if (deliveryBlockedCode) {
+                    var dc = deliveryBlockedCode;
+                    deliveryBlockedCode = null;
+                    redeemDelivery(dc);
+                  } else if (!state.checkedIn) $("btnCheckin").click();
                 }
               }).catch(function () {
                 if (card) card.hidden = false;
