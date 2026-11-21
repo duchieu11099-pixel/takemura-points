@@ -249,22 +249,7 @@
         transition: transform 0.12s ease;
       }
       .btn-line:active { transform: scale(0.985); }
-      .friend-gate {
-        position: fixed; inset: 0; z-index: 55;
-        background: var(--bg); color: var(--ink);
-        display: flex; align-items: center; justify-content: center;
-        padding: 24px 20px; overflow-y: auto;
-      }
-      .friend-gate[hidden] { display: none; }
-      .friend-gate .fg-box { max-width: 400px; width: 100%; text-align: center; }
-      .friend-gate .fg-mark {
-        width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 14px;
-        background: #14100e; border: 2px solid #dfa93e; color: #fff6e6;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 38px; font-weight: 900;
-      }
-      .friend-gate h2 { font-size: 20px; font-weight: 900; margin: 0 0 10px; color: var(--red); }
-      .friend-gate p { font-size: 14.5px; line-height: 1.8; margin: 0 0 18px; }
+
       .btn-ghost {
         width: 100%; border: 1.5px solid var(--line-color); border-radius: 13px;
         background: transparent; color: var(--ink-soft);
@@ -570,14 +555,6 @@
     </div>
     <div class="toast" id="toast" role="status"></div>
 
-    <div class="friend-gate" id="friendGate" hidden>
-      <div class="fg-box">
-        <div class="fg-mark" aria-hidden="true">竹</div>
-        <h2>友だち追加のお願い</h2>
-        <p>ポイントを受け取るには、竹むら公式LINEの友だち追加が必要です。追加が終わると、この画面に戻って自動でポイントがたまります。</p>
-        <button class="btn-line" id="btnFriendGate" type="button">LINEで友だち追加する</button>
-      </div>
-    </div>
 
     <script>
       (function () {
@@ -916,19 +893,16 @@
         /* ---------- 来店チェックイン ---------- */
         $("btnCheckin").addEventListener("click", function () {
           if (state.checkedIn) return;
-          requireFriend(function (ok) {
-            if (!ok || state.checkedIn) return;
-            state.checkedIn = true;
-            state.points += 1;
-            state.history.unshift({ kind: "plus", label: "来店ポイント", date: nowStr(), delta: 1 });
-            state.lastEarnDate = todayStr();
-            saveCloud();
-            if (window.CloudMarkEarn) window.CloudMarkEarn(uid, "来店");
-            $("checkinArea").hidden = true;
-            $("checkinDone").hidden = false;
-            renderAll();
-            toast("来店ポイント +1 pt を受け取りました");
-          });
+          state.checkedIn = true;
+          state.points += 1;
+          state.history.unshift({ kind: "plus", label: "来店ポイント", date: nowStr(), delta: 1 });
+          state.lastEarnDate = todayStr();
+          saveCloud();
+          if (window.CloudMarkEarn) window.CloudMarkEarn(uid, "来店");
+          $("checkinArea").hidden = true;
+          $("checkinDone").hidden = false;
+          renderAll();
+          toast("来店ポイント +1 pt を受け取りました");
         });
 
         /* ---------- デリバリーポイント受け取り ---------- */
@@ -944,14 +918,7 @@
             deliveryMsgShow("本日のポイントはすでに受け取り済みです。このコードは明日以降にお使いください（コードは使われていません）");
             return;
           }
-          requireFriend(function (ok) {
-            if (!ok) {
-              deliveryBlockedCode = code;
-              deliveryMsgShow("ポイントを受け取るには、LINEの友だち追加が必要です。追加が終わると自動で受け取ります。");
-              return;
-            }
-            redeemDeliveryGo(code);
-          });
+          redeemDeliveryGo(code);
         }
         function redeemDeliveryGo(code) {
           if (deliveryBusy || !code) return;
@@ -1045,24 +1012,6 @@
         function enterApp() { if (!loginView.hidden) $("btnLogin").click(); fetchLineNameRetry(); checkFriendship(); }
         var FRIEND_URL = "https://lin.ee/9l0HeQd";
         var wasNonFriend = false;
-        var deliveryBlockedCode = null;
-        function requireFriend(done) {
-          if (!uid || uid.charAt(0) !== "L" || !window.liff || !liff.getFriendship) { done(true); return; }
-          liff.getFriendship().then(function (f) {
-            var isFriend = !!(f && f.friendFlag);
-            if (!isFriend) {
-              wasNonFriend = true;
-              var gate = $("friendGate");
-              if (gate) gate.hidden = false;
-              var card = $("friendCard");
-              if (card) card.hidden = false;
-              toast("ポイントを受け取るには、LINEの友だち追加が必要です");
-            }
-            done(isFriend);
-          }).catch(function () {
-            done(true);
-          });
-        }
         function openFriendPage() {
           if (window.liff && liff.openWindow) {
             try { liff.openWindow({ url: FRIEND_URL, external: false }); return; } catch (e) {}
@@ -1071,8 +1020,8 @@
         }
         var friendPollTimer = null;
         function syncFriendPoll() {
-          var gate = $("friendGate");
-          var need = !!(gate && !gate.hidden);
+          var card = $("friendCard");
+          var need = !!(card && !card.hidden);
           if (need && !friendPollTimer) {
             friendPollTimer = setInterval(checkFriendship, 3000);
           } else if (!need && friendPollTimer) {
@@ -1082,49 +1031,25 @@
         }
         function checkFriendship() {
           var card = $("friendCard");
-          var gate = $("friendGate");
-          if (!uid || uid.charAt(0) !== "L" || !window.liff) {
-            if (card) card.hidden = true;
-            if (gate) gate.hidden = true;
-            syncFriendPoll();
-            return;
-          }
+          if (!card) return;
+          if (!uid || uid.charAt(0) !== "L" || !window.liff) { card.hidden = true; syncFriendPoll(); return; }
           try {
             if (liff.getFriendship) {
               liff.getFriendship().then(function (f) {
                 var isFriend = !!(f && f.friendFlag);
-                if (card) card.hidden = isFriend;
-                if (gate) gate.hidden = isFriend;
+                card.hidden = isFriend;
                 syncFriendPoll();
                 if (!isFriend) { wasNonFriend = true; return; }
                 if (wasNonFriend) {
                   wasNonFriend = false;
-                  if (deliveryBlockedCode) {
-                    var dc = deliveryBlockedCode;
-                    deliveryBlockedCode = null;
-                    redeemDelivery(dc);
-                  } else if (!state.checkedIn) $("btnCheckin").click();
+                  if (!state.checkedIn) $("btnCheckin").click();
                 }
-              }).catch(function () {
-                if (card) card.hidden = true;
-                if (gate) gate.hidden = true;
-                syncFriendPoll();
-              });
-            } else {
-              if (card) card.hidden = true;
-              if (gate) gate.hidden = true;
-              syncFriendPoll();
-            }
-          } catch (e) {
-            if (card) card.hidden = true;
-            if (gate) gate.hidden = true;
-            syncFriendPoll();
-          }
+              }).catch(function () { card.hidden = true; syncFriendPoll(); });
+            } else { card.hidden = true; syncFriendPoll(); }
+          } catch (e) { card.hidden = true; syncFriendPoll(); }
         }
         var btnFriendEl = $("btnFriend");
         if (btnFriendEl) btnFriendEl.addEventListener("click", openFriendPage);
-        var btnFriendGateEl = $("btnFriendGate");
-        if (btnFriendGateEl) btnFriendGateEl.addEventListener("click", openFriendPage);
         document.addEventListener("visibilitychange", function () { if (!document.hidden) checkFriendship(); });
         window.addEventListener("focus", function () { checkFriendship(); });
         function fetchLineNameRetry() {
