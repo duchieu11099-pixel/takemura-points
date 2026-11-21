@@ -1001,6 +1001,7 @@
         var LIFF_ID = "2012655656-DMdlaPgO";
         function enterApp() { if (!loginView.hidden) $("btnLogin").click(); fetchLineNameRetry(); checkFriendship(); }
         var FRIEND_URL = "https://lin.ee/9l0HeQd";
+        var wasNonFriend = false;
         function checkFriendship() {
           var card = $("friendCard");
           if (!card) return;
@@ -1008,7 +1009,13 @@
           try {
             if (liff.getFriendship) {
               liff.getFriendship().then(function (f) {
-                card.hidden = !!(f && f.friendFlag);
+                var isFriend = !!(f && f.friendFlag);
+                card.hidden = isFriend;
+                if (!isFriend) { wasNonFriend = true; return; }
+                if (wasNonFriend) {
+                  wasNonFriend = false;
+                  if (!state.checkedIn) $("btnCheckin").click();
+                }
               }).catch(function () { card.hidden = false; });
             } else { card.hidden = false; }
           } catch (e) { card.hidden = false; }
