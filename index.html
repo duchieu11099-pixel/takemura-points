@@ -1044,9 +1044,9 @@
                   wasNonFriend = false;
                   if (!state.checkedIn) $("btnCheckin").click();
                 }
-              }).catch(function () { card.hidden = true; syncFriendPoll(); });
-            } else { card.hidden = true; syncFriendPoll(); }
-          } catch (e) { card.hidden = true; syncFriendPoll(); }
+              }).catch(function () { card.hidden = false; syncFriendPoll(); });
+            } else { card.hidden = false; syncFriendPoll(); }
+          } catch (e) { card.hidden = false; syncFriendPoll(); }
         }
         var btnFriendEl = $("btnFriend");
         if (btnFriendEl) btnFriendEl.addEventListener("click", openFriendPage);
