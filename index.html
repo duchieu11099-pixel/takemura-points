@@ -1060,11 +1060,7 @@
             }
             done(isFriend);
           }).catch(function () {
-            wasNonFriend = true;
-            var gate = $("friendGate");
-            if (gate) gate.hidden = false;
-            toast("ポイントを受け取るには、LINEの友だち追加が必要です");
-            done(false);
+            done(true);
           });
         }
         function openFriendPage() {
@@ -1110,17 +1106,17 @@
                   } else if (!state.checkedIn) $("btnCheckin").click();
                 }
               }).catch(function () {
-                if (card) card.hidden = false;
+                if (card) card.hidden = true;
                 if (gate) gate.hidden = true;
                 syncFriendPoll();
               });
             } else {
-              if (card) card.hidden = false;
+              if (card) card.hidden = true;
               if (gate) gate.hidden = true;
               syncFriendPoll();
             }
           } catch (e) {
-            if (card) card.hidden = false;
+            if (card) card.hidden = true;
             if (gate) gate.hidden = true;
             syncFriendPoll();
           }
