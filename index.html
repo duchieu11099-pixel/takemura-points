@@ -241,6 +241,14 @@
       }
       .btn-primary:active { transform: scale(0.985); }
       .btn-primary:disabled { background: var(--ink-faint); box-shadow: none; cursor: default; }
+      .btn-line {
+        width: 100%; border: 0; border-radius: 13px;
+        background: #06c755; color: #fff;
+        font-size: 15.5px; font-weight: 900; padding: 13px 16px;
+        box-shadow: 0 6px 16px rgba(6, 160, 80, 0.30);
+        transition: transform 0.12s ease;
+      }
+      .btn-line:active { transform: scale(0.985); }
       .btn-ghost {
         width: 100%; border: 1.5px solid var(--line-color); border-radius: 13px;
         background: transparent; color: var(--ink-soft);
@@ -461,6 +469,12 @@
               <span>10pt：お好きなラーメン無料</span>
             </div>
             <p class="points-next" id="pointsNext"></p>
+          </div>
+
+          <div class="card" id="friendCard" hidden>
+            <h2>公式LINEのご案内</h2>
+            <p class="desc">竹むら公式LINEを友だち追加すると、お得な情報やクーポンが届きます。</p>
+            <button class="btn-line" id="btnFriend" type="button">LINEで友だち追加する</button>
           </div>
 
           <div class="card">
@@ -985,7 +999,28 @@
 
         /* ---------- LINEログイン（LIFF）: LIFF_ID を入れると有効になる ---------- */
         var LIFF_ID = "2012655656-DMdlaPgO";
-        function enterApp() { if (!loginView.hidden) $("btnLogin").click(); fetchLineNameRetry(); }
+        function enterApp() { if (!loginView.hidden) $("btnLogin").click(); fetchLineNameRetry(); checkFriendship(); }
+        var FRIEND_URL = "https://lin.ee/9l0HeQd";
+        function checkFriendship() {
+          var card = $("friendCard");
+          if (!card) return;
+          if (!uid || uid.charAt(0) !== "L" || !window.liff) { card.hidden = true; return; }
+          try {
+            if (liff.getFriendship) {
+              liff.getFriendship().then(function (f) {
+                card.hidden = !!(f && f.friendFlag);
+              }).catch(function () { card.hidden = false; });
+            } else { card.hidden = false; }
+          } catch (e) { card.hidden = false; }
+        }
+        var btnFriendEl = $("btnFriend");
+        if (btnFriendEl) btnFriendEl.addEventListener("click", function () {
+          if (window.liff && liff.openWindow) {
+            try { liff.openWindow({ url: FRIEND_URL, external: false }); return; } catch (e) {}
+          }
+          window.open(FRIEND_URL, "_blank");
+        });
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) checkFriendship(); });
         function fetchLineNameRetry() {
           if (LINE_NAME || !window.liff) return;
           try {
